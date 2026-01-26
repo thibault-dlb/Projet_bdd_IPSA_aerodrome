@@ -1,0 +1,56 @@
+/* Basic dark mode for the body */
+body {
+    background-color: #1a1a1a; /* Dark gray background */
+    color: #e0e0e0; /* Light gray text */
+    font-family: sans-serif; /* A more common, clean font */
+    margin: 0;
+    padding: 20px;
+}
+
+/* Style for the terminal-like output area, keeping specific green for output */
+#output {
+    white-space: pre-wrap; /* Preserve whitespace and new lines */
+    word-wrap: break-word; /* Break long words */
+    color: #00ff00; /* Still using green for output messages */
+}
+
+/* Style for form elements */
+form div {
+    margin-bottom: 10px;
+}
+
+form span {
+    color: #e0e0e0; /* Match body text color */
+}
+
+form label {
+    color: #e0e0e0; /* Match body text color */
+}
+
+input, button {
+    background-color: #333333; /* Darker gray for inputs */
+    color: #e0e0e0; /* Light text for inputs */
+    border: 1px solid #555555; /* Subtle border */
+    font-family: inherit;
+    font-size: inherit;
+    padding: 8px;
+    border-radius: 4px;
+    width: 200px; /* Consistent width for inputs */
+}
+
+input:focus, button:focus {
+    outline: 1px solid #009900; /* Green outline on focus */
+}
+
+button {
+    cursor: pointer;
+    background-color: #008000; /* Green button */
+    color: white;
+    border: none;
+    width: auto; /* Auto width for button */
+    padding: 10px 20px;
+}
+
+button:hover {
+    background-color: #006400; /* Darker green on hover */
+}

@@ -69,5 +69,5 @@ def inspect_sqlite_database(db_path):
 
 if __name__ == "__main__":
     # Chemin vers votre base de données
-    database_file = "/home/thibault_dlb/Code_SQlite.db"
+    database_file = "Code_SQlite.db"
     inspect_sqlite_database(database_file)

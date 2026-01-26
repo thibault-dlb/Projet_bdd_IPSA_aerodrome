@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="terminal">
+    <div id="output">Airport Management System v1.0<br>Please log in.<br><br></div>
+    
+    <form id="loginForm">
+        <div>
+            <span>&gt; </span><label for="username">Username: </label>
+            <input type="text" id="username" name="username" required autocomplete="off">
+        </div>
+        <div>
+            <span>&gt; </span><label for="password">Password: </label>
+            <input type="password" id="password" name="password" required autocomplete="off">
+        </div>
+        <br>
+        <div>
+            <button type="submit">Login</button>
+        </div>
+    </form>
+
+    <div id="menu-container" style="display:none;">
+        <h3 id="menu-title"></h3>
+        <div id="menu-options"></div>
+        <br>
+        <button id="logoutButton">Logout</button>
+    </div>
+
+    <div id="creation-container" style="display:none;">
+        <h3 id="creation-title"></h3>
+        <form id="creation-form"></form>
+    </div>
+
+</div>
+
+<script>
+    // --- DOM Elements ---
+    const loginForm = document.getElementById('loginForm');
+    const outputDiv = document.getElementById('output');
+    const menuContainer = document.getElementById('menu-container');
+    const logoutButton = document.getElementById('logoutButton');
+    const menuTitle = document.getElementById('menu-title');
+    const menuOptions = document.getElementById('menu-options');
+    const creationContainer = document.getElementById('creation-container');
+    const creationTitle = document.getElementById('creation-title');
+    const creationForm = document.getElementById('creation-form');
+
+    // --- State ---
+    let loggedInUser = null;
+    const API_BASE_URL = 'http://127.0.0.1:8000';
+
+    // --- Login Logic ---
+    loginForm.addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const username = loginForm.elements.username.value;
+        const password = loginForm.elements.password.value;
+        const requestBody = new URLSearchParams({ username, password });
+
+        outputDiv.innerHTML += `&gt; Attempting login for user: ${username}...\n`;
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/login/`, { method: 'POST', body: requestBody });
+            const data = await response.json();
+            if (response.ok) {
+                outputDiv.innerHTML = `&gt; <span style="color: #00ff00;">SUCCESS:</span> Login successful!\n`;
+                loggedInUser = { id: data.user_id, type: data.user_type, name: username };
+                showMenu();
+            } else {
+                outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERROR:</span> ${data.detail || 'Authentication failed'}\n\n`;
+            }
+        } catch (error) {
+            outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">SYSTEM ERROR:</span> Could not connect to API.\n\n`;
+        }
+        loginForm.elements.password.value = '';
+    });
+
+    // --- Menu Logic ---
+    function showMenu() {
+        loginForm.style.display = 'none';
+        creationContainer.style.display = 'none';
+        menuContainer.style.display = 'block';
+        
+        menuTitle.innerText = `Welcome, ${loggedInUser.name} (level: ${loggedInUser.type})`;
+
+        let optionsHtml = '';
+        if (loggedInUser.type === 'gestionnaire') {
+            optionsHtml += '<p>Options de création :</p>';
+            optionsHtml += '<button data-action="create-gestionnaire">Créer un compte Gestionnaire</button><br><br>';
+            optionsHtml += '<button data-action="create-agent">Créer un compte Agent</button><br><br>';
+            optionsHtml += '<button data-action="create-pilote">Créer un compte Pilote</button>';
+        } else if (loggedInUser.type === 'agent') {
+            optionsHtml += '<p>Options de création :</p>';
+            optionsHtml += '<button data-action="create-pilote">Créer un compte Pilote</button>';
+        } else {
+            optionsHtml += '<p>Aucune action de création de compte disponible.</p>';
+        }
+        menuOptions.innerHTML = optionsHtml;
+    }
+
+    logoutButton.addEventListener('click', () => {
+        loggedInUser = null;
+        menuContainer.style.display = 'none';
+        loginForm.style.display = 'block';
+        loginForm.elements.username.focus();
+        outputDiv.innerHTML = 'Successfully logged out.<br>Please log in.<br><br>';
+    });
+
+    // --- Creation Form Logic ---
+    menuOptions.addEventListener('click', function(event) {
+        if (event.target.tagName === 'BUTTON') {
+            const action = event.target.getAttribute('data-action');
+            if (action && action.startsWith('create-')) {
+                const userType = action.split('-')[1];
+                generateCreationForm(userType);
+            }
+        }
+    });
+
+    function generateCreationForm(userType) {
+        menuContainer.style.display = 'none';
+        creationContainer.style.display = 'block';
+        creationTitle.innerText = `Créer un nouveau compte : ${userType}`;
+
+        let formHtml = `
+            <div><label>Nom:</label><input type="text" name="nom" required></div>
+            <div><label>Prénom:</label><input type="text" name="prenom" required></div>
+            <div><label>Téléphone:</label><input type="tel" name="tel" required></div>
+            <div><label>Email:</label><input type="email" name="mail" required></div>
+            <div><label>Username:</label><input type="text" name="username" required></div>
+            <div><label>Password:</label><input type="password" name="password" required></div>
+        `;
+
+        if (userType === 'pilote') {
+            formHtml += `
+                <div><label>Licence:</label><input type="text" name="license" required></div>
+                <div><label>Médical:</label><input type="text" name="medical" required></div>
+            `;
+        }
+
+        formHtml += `
+            <br>
+            <button type="submit">Créer</button>
+            <button type="button" id="cancelCreation">Annuler</button>
+        `;
+        creationForm.innerHTML = formHtml;
+        creationForm.setAttribute('data-user-type', userType); // Store user type for submission
+    }
+
+    creationForm.addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const userType = creationForm.getAttribute('data-user-type');
+        const endpointMap = {
+            pilote: '/pilotes/',
+            agent: '/agents/',
+            gestionnaire: '/gestionnaires/'
+        };
+        const endpoint = endpointMap[userType];
+        if (!endpoint) return;
+
+        const formData = new FormData(creationForm);
+        const data = Object.fromEntries(formData.entries());
+
+        outputDiv.innerHTML = `&gt; Creating ${userType} account: ${data.username}...\n`;
+
+        try {
+            const response = await fetch(API_BASE_URL + endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (response.ok) {
+                outputDiv.innerHTML += `&gt; <span style="color: #00ff00;">SUCCESS:</span> User '${result.username}' created successfully!\n\n`;
+                showMenu(); // Go back to menu
+            } else {
+                outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERROR:</span> ${result.detail || 'Failed to create user.'}\n\n`;
+            }
+        } catch (error) {
+            outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">SYSTEM ERROR:</span> Could not create user.\n\n`;
+        }
+    });
+
+    // Cancel button inside creation form
+    creationContainer.addEventListener('click', function(event) {
+        if (event.target.id === 'cancelCreation') {
+            showMenu();
+        }
+    });
+
+</script>
+
+</body>
+</html>

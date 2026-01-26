@@ -70,4 +70,4 @@ def display_full_database(db_path):
             conn.close()
 
 if __name__ == "__main__":
-    display_full_database("/home/thibault_dlb/Code_SQlite.db")
+    display_full_database("Code_SQlite.db")
