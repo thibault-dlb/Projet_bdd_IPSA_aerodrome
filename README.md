@@ -64,9 +64,9 @@ Le serveur sera accessible à l'adresse `http://127.0.0.1:8000`.
 Ouvrez le fichier `index.html` dans votre navigateur. Vous pouvez utiliser une extension comme "Live Server" dans VS Code pour le servir localement.
 
 L'interface vous permet de vous connecter en tant que :
-- **Gestionnaire** (ex: `jleclerc`, mdp: `securepass123`)
-- **Agent** (ex: `fhardy`, mdp: `agentpass456`)
-- **Pilote** (ex: `pdurand`, mdp: `pilote789`)
+- **Gestionnaire** (ex: `jleclerc`, mdp: `securepass123`) niveau de privilège 0
+- **Agent** (ex: `fhardy`, mdp: `agentpass456`) niveau de privilège 1
+- **Pilote** (ex: `pdurand`, mdp: `pilote789`) niveau de privilège 2
 
 Selon le type d'utilisateur, vous aurez différentes options pour créer d'autres comptes.
 

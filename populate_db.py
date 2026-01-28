@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import sqlite3
-import hashlib
+from passlib.context import CryptContext
+
+# Initialiser le contexte pour le hachage des mots de passe avec bcrypt
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def populate_database(db_path):
     """Remplit la base de données avec des données de démo."""
@@ -30,23 +33,24 @@ def populate_database(db_path):
 
         # --- Table: Gestionnaire ---
         gestionnaires = [
-            (1, 'Dupont', 'Jean', '0102030405', 'jean.dupont@airport.com', 'jdupont', hashlib.sha256('password123'.encode()).hexdigest()),
-            (2, 'Martin', 'Sophie', '0607080910', 'sophie.martin@airport.com', 'smartin', hashlib.sha256('azerty456'.encode()).hexdigest())
+            (1, 'Dupont', 'Jean', '0102030405', 'jean.dupont@airport.com', 'jdupont', pwd_context.hash('password123')),
+            (2, 'Martin', 'Sophie', '0607080910', 'sophie.martin@airport.com', 'smartin', pwd_context.hash('azerty456')),
+            (3, 'Tripier de Laubrière', 'Thibault', '0769145620', 'thibdelaub@outlook.fr', 'thibault.dlb', pwd_context.hash('Epicier1'))
         ]
         cursor.executemany("INSERT OR IGNORE INTO Gestionnaire (Id, nom, prenom, tel, mail, username, password_hash) VALUES (?, ?, ?, ?, ?, ?, ?)", gestionnaires)
 
         # --- Table: Pilote ---
         pilotes = [
-            (1, 'Durand', 'Pierre', '0611223344', 'p.durand@pilot.com', 'pdurand', 'ATPL-123', 'Class 1-2027', hashlib.sha256('pilotpass1'.encode()).hexdigest()),
-            (2, 'Lefevre', 'Marie', '0655667788', 'm.lefevre@pilot.com', 'mlefevre', 'CPL-456', 'Class 1-2028', hashlib.sha256('pilotpass2'.encode()).hexdigest()),
-            (3, 'Bernard', 'Luc', '0688776655', 'l.bernard@pilot.com', 'lbernard', 'PPL-789', 'Class 2-2026', hashlib.sha256('pilotpass3'.encode()).hexdigest()),
+            (1, 'Durand', 'Pierre', '0611223344', 'p.durand@pilot.com', 'pdurand', 'ATPL-123', 'Class 1-2027', pwd_context.hash('pilotpass1')),
+            (2, 'Lefevre', 'Marie', '0655667788', 'm.lefevre@pilot.com', 'mlefevre', 'CPL-456', 'Class 1-2028', pwd_context.hash('pilotpass2')),
+            (3, 'Bernard', 'Luc', '0688776655', 'l.bernard@pilot.com', 'lbernard', 'PPL-789', 'Class 2-2026', pwd_context.hash('pilotpass3')),
         ]
         cursor.executemany("INSERT OR IGNORE INTO Pilote (Id, nom, prenom, tel, mail, username, license, medical, password_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", pilotes)
 
         # --- Table: Agent d'exploitation ---
         agents = [
-            (1, 'Petit', 'Thomas', '0712345678', 't.petit@airport.com', 'tpetit', hashlib.sha256('agentpass1'.encode()).hexdigest()),
-            (2, 'Robert', 'Alice', '0787654321', 'a.robert@airport.com', 'arobert', hashlib.sha256('agentpass2'.encode()).hexdigest()),
+            (1, 'Petit', 'Thomas', '0712345678', 't.petit@airport.com', 'tpetit', pwd_context.hash('agentpass1')),
+            (2, 'Robert', 'Alice', '0787654321', 'a.robert@airport.com', 'arobert', pwd_context.hash('agentpass2')),
         ]
         cursor.executemany("INSERT OR IGNORE INTO Agent_d_exploitation (Id, nom, prenom, tel, mail, username, password_hash) VALUES (?, ?, ?, ?, ?, ?, ?)", agents)
 
@@ -102,4 +106,4 @@ def populate_database(db_path):
             conn.close()
 
 if __name__ == "__main__":
-    populate_database("/home/thibault_dlb/Code_SQlite.db")
+    populate_database("Code_SQlite.db")

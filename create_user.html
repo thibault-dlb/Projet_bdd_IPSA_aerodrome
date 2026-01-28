@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer un Compte - Gestion Aéroport</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="terminal">
+    <div id="output"></div>
+
+    <div id="creation-container">
+        <h3 id="creation-title"></h3>
+        <form id="creation-form"></form>
+    </div>
+</div>
+
+<script>
+    const outputDiv = document.getElementById('output');
+    const creationTitle = document.getElementById('creation-title');
+    const creationForm = document.getElementById('creation-form');
+    const API_BASE_URL = 'http://127.0.0.1:8000';
+
+    let loggedInUser = null;
+    let userTypeToCreate = null;
+
+    // --- Authorization and Form Generation ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const userJson = sessionStorage.getItem('loggedInUser');
+        if (!userJson) {
+            window.location.href = 'login.html';
+            return;
+        }
+        loggedInUser = JSON.parse(userJson);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        userTypeToCreate = urlParams.get('type');
+
+        if (!userTypeToCreate || !isAllowedToCreate(userTypeToCreate)) {
+            outputDiv.innerHTML = `&gt; <span style="color: #ff0000;">ERROR:</span> Action non autorisée ou type d'utilisateur invalide.`;
+            setTimeout(() => window.location.href = 'dashboard.html', 2000);
+            return;
+        }
+
+        generateCreationForm(userTypeToCreate);
+    });
+    
+    function isAllowedToCreate(type) {
+        if (loggedInUser.type === 'gestionnaire') {
+            return ['gestionnaire', 'agent', 'pilote'].includes(type);
+        }
+        if (loggedInUser.type === 'agent') {
+            return type === 'pilote';
+        }
+        return false;
+    }
+
+    function generateCreationForm(userType) {
+        creationTitle.innerText = `Créer un nouveau compte : ${userType}`;
+
+        let formHtml = `
+            <div><label>Nom:</label><input type="text" name="nom" required></div>
+            <div><label>Prénom:</label><input type="text" name="prenom" required></div>
+            <div><label>Téléphone:</label><input type="tel" name="tel" required></div>
+            <div><label>Email:</label><input type="email" name="mail" required></div>
+            <div><label>Username:</label><input type="text" name="username" required></div>
+            <div><label>Password:</label><input type="password" name="password" required></div>
+        `;
+
+        if (userType === 'pilote') {
+            formHtml += `
+                <div><label>Licence:</label><input type="text" name="license" required></div>
+                <div><label>Médical:</label><input type="text" name="medical" required></div>
+            `;
+        }
+
+        formHtml += `
+            <br>
+            <button type="submit">Créer</button>
+            <button type="button" id="cancelCreation">Annuler</button>
+        `;
+        creationForm.innerHTML = formHtml;
+    }
+
+    // --- Form Submission ---
+    creationForm.addEventListener('submit', async function(event) {
+        event.preventDefault();
+        
+        const endpointMap = {
+            pilote: '/pilotes/',
+            agent: '/agents/',
+            gestionnaire: '/gestionnaires/'
+        };
+        const endpoint = endpointMap[userTypeToCreate];
+        if (!endpoint) return;
+
+        const formData = new FormData(creationForm);
+        const data = Object.fromEntries(formData.entries());
+
+        outputDiv.innerHTML = `&gt; Creating ${userTypeToCreate} account: ${data.username}...
+`;
+
+        try {
+            const response = await fetch(API_BASE_URL + endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+
+            if (response.ok) {
+                outputDiv.innerHTML += `&gt; <span style="color: #00ff00;">SUCCESS:</span> User '${result.username}' created successfully!
+`;
+                outputDiv.innerHTML += `&gt; Redirection vers le tableau de bord dans 3 secondes...`;
+                setTimeout(() => window.location.href = 'dashboard.html', 3000);
+            } else {
+                outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERROR:</span> ${result.detail || 'Failed to create user.'}
+
+`;
+            }
+        } catch (error) {
+            outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">SYSTEM ERROR:</span> Could not create user.
+
+`;
+        }
+    });
+
+    // --- Cancel Button ---
+    creationForm.addEventListener('click', function(event) {
+        if (event.target.id === 'cancelCreation') {
+            window.location.href = 'dashboard.html';
+        }
+    });
+
+</script>
+
+</body>
+</html>

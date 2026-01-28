@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Agent - Gestion Aéroport</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="terminal">
+    <div id="output"></div>
+
+    <div id="dashboard-container">
+        <h3 id="dashboard-title"></h3>
+        <div id="dashboard-content">
+            <!-- Creneaux Requests -->
+            <h4>Demandes de créneaux</h4>
+            <div id="creneaux-requests"></div>
+
+            <!-- All Creneaux -->
+            <h4>Tous les créneaux</h4>
+            <div id="all-creneaux"></div>
+        </div>
+        <br>
+        <button id="logoutButton">Logout</button>
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://127.0.0.1:8000';
+    const outputDiv = document.getElementById('output');
+    const dashboardTitle = document.getElementById('dashboard-title');
+    const creneauxRequestsDiv = document.getElementById('creneaux-requests');
+    const allCreneauxDiv = document.getElementById('all-creneaux');
+    const logoutButton = document.getElementById('logoutButton');
+
+    let loggedInUser = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const userJson = sessionStorage.getItem('loggedInUser');
+        if (!userJson) {
+            window.location.href = 'login.html';
+            return;
+        }
+        loggedInUser = JSON.parse(userJson);
+
+        if (loggedInUser.type !== 'agent' && loggedInUser.type !== 'gestionnaire') {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        dashboardTitle.innerText = `Tableau de Bord Agent: ${loggedInUser.name}`;
+
+        loadCreneaux();
+
+        logoutButton.addEventListener('click', () => {
+            sessionStorage.removeItem('loggedInUser');
+            window.location.href = 'login.html';
+        });
+        
+        creneauxRequestsDiv.addEventListener('click', handleCreneauAction);
+        
+        creneauxRequestsDiv.addEventListener('click', (event) => {
+            if (event.target.classList.contains('message-pilot-btn')) {
+                const piloteId = event.target.dataset.piloteId;
+                window.location.href = `messagerie.html?pilote_id=${piloteId}&agent_id=${loggedInUser.id}`;
+            }
+        });
+    });
+
+    async function fetchData(endpoint) {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            headers: {
+                'X-User-Id': loggedInUser.id,
+                'X-User-Type': loggedInUser.type
+            }
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERROR:</span> ${error.detail || 'Failed to fetch data'}
+
+`;
+            return null;
+        }
+        return response.json();
+    }
+    
+    async function updateData(endpoint, data) {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Id': loggedInUser.id,
+                'X-User-Type': loggedInUser.type
+            },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERROR:</span> ${error.detail || 'Failed to update data'}
+
+`;
+            return null;
+        }
+        return response.json();
+    }
+
+    async function loadCreneaux() {
+        const creneaux = await fetchData('/creneaux/');
+        if (creneaux) {
+            const requests = creneaux.filter(c => c.etat === 'Demandé');
+            creneauxRequestsDiv.innerHTML = '<ul>' + requests.map(c => `<li>${c.debut_prevu} - ${c.fin_prevu} <button data-id="${c.Id}" data-action="Confirmé">Confirmer</button> <button data-id="${c.Id}" data-action="Annulé">Annuler</button> <button data-pilote-id="${c.pilote_id}" class="message-pilot-btn">Message Pilote</button></li>`).join('') + '</ul>';
+            
+            allCreneauxDiv.innerHTML = '<ul>' + creneaux.map(c => `<li>${c.debut_prevu} - ${c.fin_prevu} (${c.etat})</li>`).join('') + '</ul>';
+        }
+    }
+    
+    async function handleCreneauAction(event) {
+        if (event.target.tagName !== 'BUTTON') return;
+        
+        const creneauId = event.target.dataset.id;
+        const action = event.target.dataset.action;
+        
+        const creneau = await fetchData(`/creneaux/${creneauId}`);
+        if(!creneau) return;
+        
+        creneau.etat = action;
+        
+        const updatedCreneau = await updateData(`/creneaux/${creneauId}`, creneau);
+        
+        if (updatedCreneau) {
+            outputDiv.innerHTML += `> <span style="color: #00ff00;">SUCCESS:</span> Créneau ${creneauId} a été ${action}.
+
+`;
+            loadCreneaux();
+        }
+    }
+
+</script>
+
+</body>
+</html>

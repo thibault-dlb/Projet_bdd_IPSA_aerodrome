@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messagerie - Gestion Aéroport</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="terminal">
+    <div id="output"></div>
+    
+    <div id="messaging-container">
+        <h3 id="chat-title"></h3>
+        <div id="messages-list"></div>
+        <form id="send-message-form">
+            <input type="text" name="contenu" placeholder="Écrire un message..." required>
+            <button type="submit">Envoyer</button>
+        </form>
+        <br>
+        <button id="backToDashboard">Retour au Tableau de Bord</button>
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://127.0.0.1:8000';
+    const outputDiv = document.getElementById('output');
+    const chatTitle = document.getElementById('chat-title');
+    const messagesList = document.getElementById('messages-list');
+    const sendMessageForm = document.getElementById('send-message-form');
+    const backToDashboardButton = document.getElementById('backToDashboard');
+
+    let loggedInUser = null;
+    let currentPiloteId = null;
+    let currentAgentId = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const userJson = sessionStorage.getItem('loggedInUser');
+        if (!userJson) {
+            window.location.href = 'login.html';
+            return;
+        }
+        loggedInUser = JSON.parse(userJson);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        currentPiloteId = urlParams.get('pilote_id');
+        currentAgentId = urlParams.get('agent_id');
+
+        if (!currentPiloteId || !currentAgentId) {
+            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERROR:</span> Pilote ou Agent non spécifié pour la conversation.
+
+`;
+            return;
+        }
+        
+        chatTitle.innerText = `Conversation avec Pilote ${currentPiloteId} et Agent ${currentAgentId}`;
+
+        loadMessages();
+
+        backToDashboardButton.addEventListener('click', () => {
+            if (loggedInUser.type === 'pilote') {
+                window.location.href = 'pilote_dashboard.html';
+            } else if (loggedInUser.type === 'agent') {
+                window.location.href = 'agent_dashboard.html';
+            } else if (loggedInUser.type === 'gestionnaire') {
+                window.location.href = 'gestionnaire_dashboard.html';
+            }
+        });
+
+        sendMessageForm.addEventListener('submit', handleSendMessage);
+    });
+
+    async function fetchData(endpoint) {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            headers: {
+                'X-User-Id': loggedInUser.id,
+                'X-User-Type': loggedInUser.type
+            }
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERROR:</span> ${error.detail || 'Failed to fetch data'}
+
+`;
+            return null;
+        }
+        return response.json();
+    }
+    
+    async function postData(endpoint, data) {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Id': loggedInUser.id,
+                'X-User-Type': loggedInUser.type
+            },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERROR:</span> ${error.detail || 'Failed to post data'}
+
+`;
+            return null;
+        }
+        return response.json();
+    }
+
+    async function loadMessages() {
+        const messages = await fetchData('/messageries/');
+        if (messages) {
+            const conversation = messages.filter(msg => 
+                (msg.pilote_id == currentPiloteId && msg.agent_id == currentAgentId) || 
+                (msg.pilote_id == currentAgentId && msg.agent_id == currentPiloteId) // In case agent_id and pilote_id are swapped in DB (sens_d_envoie)
+            ).sort((a, b) => {
+                const dateA = new Date(`${a.date}T${a.heure}`);
+                const dateB = new Date(`${b.date}T${b.heure}`);
+                return dateA - dateB;
+            });
+
+            messagesList.innerHTML = '';
+            conversation.forEach(msg => {
+                const sender = msg.sens_d_envoie === 1 ? 'Pilote' : 'Agent'; // 1 for Pilote, 0 for Agent
+                const msgClass = msg.sens_d_envoie === 1 ? 'message-pilote' : 'message-agent';
+                messagesList.innerHTML += `<div class="${msgClass}"><strong>${sender} (${msg.date} ${msg.heure}):</strong> ${msg.contenu}</div>`;
+            });
+            messagesList.scrollTop = messagesList.scrollHeight; // Scroll to bottom
+        }
+    }
+
+    async function handleSendMessage(event) {
+        event.preventDefault();
+        const formData = new FormData(sendMessageForm);
+        const contenu = formData.get('contenu');
+        
+        const now = new Date();
+        const date = now.toISOString().slice(0, 10);
+        const heure = now.toTimeString().slice(0, 5);
+
+        let sens_d_envoie = loggedInUser.type === 'pilote' ? 1 : 0; // 1 for pilote, 0 for agent
+
+        const messageData = {
+            date: date,
+            heure: heure,
+            contenu: contenu,
+            sens_d_envoie: sens_d_envoie,
+            pilote_id: parseInt(currentPiloteId),
+            agent_id: parseInt(currentAgentId)
+        };
+
+        const newMessage = await postData('/messageries/', messageData);
+        if (newMessage) {
+            outputDiv.innerHTML += `> <span style="color: #00ff00;">SUCCESS:</span> Message envoyé.
+
+`;
+            sendMessageForm.reset();
+            loadMessages();
+        }
+    }
+</script>
+
+</body>
+</html>

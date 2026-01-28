@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Gestionnaire - Gestion Aéroport</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="terminal">
+    <div id="output"></div>
+    
+    <div id="dashboard-container">
+        <h3 id="dashboard-title"></h3>
+        <div id="dashboard-content">
+            <!-- User Management -->
+            <h4>Gestion des utilisateurs</h4>
+            <div id="user-management"></div>
+
+            <!-- Infrastructure Management -->
+            <h4>Gestion des infrastructures</h4>
+            <div id="infra-management"></div>
+
+            <!-- Financials -->
+            <h4>Finances</h4>
+            <div id="financials"></div>
+        </div>
+        <br>
+        <button id="logoutButton">Logout</button>
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://127.0.0.1:8000';
+    const outputDiv = document.getElementById('output');
+    const dashboardTitle = document.getElementById('dashboard-title');
+    const userManagementDiv = document.getElementById('user-management');
+    const infraManagementDiv = document.getElementById('infra-management');
+    const financialsDiv = document.getElementById('financials');
+    const logoutButton = document.getElementById('logoutButton');
+
+    let loggedInUser = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const userJson = sessionStorage.getItem('loggedInUser');
+        if (!userJson) {
+            window.location.href = 'login.html';
+            return;
+        }
+        loggedInUser = JSON.parse(userJson);
+
+        if (loggedInUser.type !== 'gestionnaire') {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        dashboardTitle.innerText = `Tableau de Bord Gestionnaire: ${loggedInUser.name}`;
+        
+        loadUsers();
+        loadInfrastructures();
+        loadFinancials();
+
+        logoutButton.addEventListener('click', () => {
+            sessionStorage.removeItem('loggedInUser');
+            window.location.href = 'login.html';
+        });
+    });
+
+    async function fetchData(endpoint) {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            headers: {
+                'X-User-Id': loggedInUser.id,
+                'X-User-Type': loggedInUser.type
+            }
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERROR:</span> ${error.detail || 'Failed to fetch data'}
+
+`;
+            return null;
+        }
+        return response.json();
+    }
+    
+    async function loadUsers() {
+        const gestionnaires = await fetchData('/gestionnaires/');
+        const agents = await fetchData('/agents/');
+        const pilotes = await fetchData('/pilotes/');
+        
+        let html = '<h5>Gestionnaires</h5><ul>' + gestionnaires.map(u => `<li>${u.username}</li>`).join('') + '</ul>';
+        html += '<h5>Agents</h5><ul>' + agents.map(u => `<li>${u.username}</li>`).join('') + '</ul>';
+        html += '<h5>Pilotes</h5><ul>' + pilotes.map(u => `<li>${u.username}</li>`).join('') + '</ul>';
+        userManagementDiv.innerHTML = html;
+    }
+    
+    async function loadInfrastructures() {
+        const infrastructures = await fetchData('/infrastructures/');
+        if (infrastructures) {
+            infraManagementDiv.innerHTML = '<ul>' + infrastructures.map(i => `<li>${i.nom} (${i.type})</li>`).join('') + '</ul>';
+        }
+    }
+
+    async function loadFinancials() {
+        const creneaux = await fetchData('/creneaux/');
+        let totalRevenue = 0;
+        if(creneaux) {
+            creneaux.forEach(c => {
+                if(c.cout_total) totalRevenue += c.cout_total;
+            });
+        }
+        financialsDiv.innerHTML = `<p>Revenu total des créneaux: ${totalRevenue.toFixed(2)} €</p>`;
+    }
+
+</script>
+
+</body>
+</html>
