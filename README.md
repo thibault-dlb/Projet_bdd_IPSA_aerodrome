@@ -1,101 +1,165 @@
-# Projet de Gestion d'Aéroport
+# 🛫 Projet de Gestion d'Aérodrome
 
-Ce projet est une application web simple pour la gestion d'un aéroport, développée avec un backend en Python (FastAPI) et un frontend en HTML, CSS et JavaScript pur.
+**Système de gestion d'aérodrome simplifié pour présentation académique**
 
-## Structure du Projet
+## 📋 Vue d'ensemble
 
-- `api/`: Contient le code de l'API backend.
-  - `main.py`: Le point d'entrée de l'API FastAPI, définissant toutes les routes.
-  - `models.py`: Les modèles Pydantic pour la validation des données.
-- `index.html`: Le point d'entrée du frontend de l'application.
-- `style.css`: La feuille de style pour le frontend.
-- `CRUD.py`: Une classe `DatabaseManager` pour gérer toutes les opérations de base de données (Créer, Lire, Mettre à jour, Supprimer).
-- `Code_SQlite.db`: La base de données SQLite.
-- `requirements.txt`: Les dépendances Python du projet.
-- `add_user.py`: Un script pour ajouter manuellement des utilisateurs à la base de données.
-- `populate_db.py`: Un script pour remplir la base de données avec des données initiales.
-- `display_full_db.py`: Un script pour afficher tout le contenu de la base de données.
-- `empty_db.py`: Un script pour vider toutes les tables de la base de données.
-- `inspect_db.py`: Un script pour inspecter le schéma de la base de données.
+Application web permettant la gestion des mouvements aériens, des services au sol et de la facturation pour un aérodrome régional privé.
 
-## Prérequis
+### Architecture
+- **Backend**: FastAPI (Python 3)
+- **Base de données**: SQLite
+- **Frontend**: HTML/CSS/JavaScript
+- **Sécurité**: JWT + bcrypt
 
+## ⭐ Fonctionnalités principales
+
+### 1. Authentification Multi-Rôles
+- **3 types d'utilisateurs** avec droits différents:
+  - 🔧 **Gestionnaire** (niveau 0) - Accès total, gestion infrastructure
+  - 👔 **Agent d'exploitation** (niveau 1) - Validation créneaux, facturation
+  - 👨‍✈️ **Pilote** (niveau 2) - Gestion avions, demande de créneaux
+
+### 2. Règle Métier des 90 Minutes ⏱️
+Validation automatique garantissant **90 minutes minimum** entre deux mouvements sur une même infrastructure.
+
+**Implémentation**: `business.py` → `validate_creneau_time_slot()`
+
+### 3. Calcul Automatique de Facturation 💰
+Calcul du coût total basé sur:
+- Location infrastructure (tarif dégressif: jour/semaine/mois)
+- Avitaillement en carburant
+
+**Implémentation**: `business.py` → `calculate_creneau_cost()`
+
+### 4. Sécurité 🔐
+- Mots de passe hashés avec **bcrypt**
+- Authentification par **JWT tokens** (expiration 30 min)
+- **RBAC** (Role-Based Access Control)
+
+## 🗂️ Structure du Projet
+
+```
+├── api/
+│   ├── main.py          # API FastAPI avec endpoints
+│   └── models.py        # Modèles Pydantic
+├── business.py          # Logique métier (règle 90 min, calculs)
+├── CRUD.py             # Gestionnaire de base de données
+├── create_db.py        # Création du schéma SQLite
+├── populate_db.py      # Données de démo
+└── *.html              # Interface utilisateur
+```
+
+## 🚀 Installation et Lancement
+
+### Prérequis
 - Python 3.7+
-- Un environnement virtuel (recommandé)
+- pip
 
-## Installation
-
-1.  Clonez le dépôt :
-    ```bash
-    git clone <URL_DU_REPO>
-    cd <NOM_DU_DOSSIER>
-    ```
-
-2.  Créez et activez un environnement virtuel :
-    ```bash
-    python3 -m venv .venv
-    source .venv/bin/activate
-    ```
-
-3.  Installez les dépendances :
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  (Optionnel) Remplissez la base de données avec des données de test :
-    ```bash
-    python populate_db.py
-    ```
-
-## Utilisation
-
-### Lancement du Backend
-
-Pour démarrer le serveur API, exécutez la commande suivante à la racine du projet :
-
+### Installation
 ```bash
+# Créer un environnement virtuel
+python -m venv venv
+venv\Scripts\activate  # Windows
+
+# Installer les dépendances
+pip install -r requirements.txt
+
+# Initialiser la base de données
+python populate_db.py
+```
+
+### Lancement
+```bash
+# Démarrer l'API
 uvicorn api.main:app --reload
 ```
 
-Le serveur sera accessible à l'adresse `http://127.0.0.1:8000`.
+Puis ouvrir `login.html` dans un navigateur (ou avec Live Server).
 
-### Accès au Frontend
+## 👥 Comptes de Test
 
-Ouvrez le fichier `index.html` dans votre navigateur. Vous pouvez utiliser une extension comme "Live Server" dans VS Code pour le servir localement.
+| Type | Username | Password |
+|------|----------|----------|
+| Gestionnaire | `jleclerc` | `securepass123` |
+| Agent | `fhardy` | `agentpass456` |
+| Pilote | `pdurand` | `pilote789` |
 
-L'interface vous permet de vous connecter en tant que :
-- **Gestionnaire** (ex: `jleclerc`, mdp: `securepass123`) niveau de privilège 0
-- **Agent** (ex: `fhardy`, mdp: `agentpass456`) niveau de privilège 1
-- **Pilote** (ex: `pdurand`, mdp: `pilote789`) niveau de privilège 2
+## 📊 Base de Données
 
-Selon le type d'utilisateur, vous aurez différentes options pour créer d'autres comptes.
+### Tables principales
+- **Pilote**, **Agent_d_exploitation**, **Gestionnaire** - Utilisateurs
+- **Avion** - Aéronefs liés aux pilotes
+- **Infrastructure** - Hangars, parkings (avec capacité)
+- **Creneaux** - Table pivot : mouvement + infrastructure + facturation
+- **Carburant** - AVGAS 100LL, JET A-1
+- **Facture**, **Avitaillement**, **Messagerie**
 
-### Scripts Utilitaires
+## 🔍 Points Clés pour la Présentation
 
-- **Ajouter un utilisateur :**
-  ```bash
-  python add_user.py
-  ```
-- **Afficher la base de données :**
-  ```bash
-  python display_full_db.py
-  ```
-- **Vider la base de données :**
-  ```bash
-  python empty_db.py
-  ```
+### 1. Séparation des responsabilités
+- **`main.py`**: API REST (HTTP)
+- **`business.py`**: Logique métier pure (pas de SQL)
+- **`CRUD.py`**: Accès base de données
 
-## Fonctionnalités de l'API
+### 2. Validation métier
+```python
+# Exemple: Vérification des 90 minutes
+is_valid, error = validate_creneau_time_slot(
+    db, infrastructure_id, debut, fin
+)
+```
 
-L'API expose des points de terminaison CRUD pour les entités suivantes :
-- `Carburant`
-- `Pilote`
-- `Infrastructure`
-- `Avion`
-- `Creneaux`
-- `Gestionnaire`
-- `Agent_d_exploitation`
-- `Facture`
-- `Messagerie`
+### 3. RBAC simplifié
+```python
+@app.post("/creneaux/", dependencies=[Depends(is_pilote)])
+@app.put("/creneaux/{id}", dependencies=[Depends(is_agent)])
+```
 
-La documentation complète de l'API (générée par Swagger) est disponible à l'adresse `http://127.0.0.1:8000/docs` lorsque le serveur est en cours d'exécution.
+## 📝 Scripts Utilitaires
+
+## 📝 Scripts Utilitaires
+
+```bash
+# Afficher toute la base de données
+python display_full_db.py
+
+# Vider toutes les tables
+python empty_db.py
+
+# Inspecter le schéma
+python inspect_db.py
+
+# Ajouter un utilisateur manuellement
+python add_user.py
+```
+
+## 🎯 Choix de Simplification
+
+Pour la présentation, le projet a été simplifié tout en conservant les fonctionnalités essentielles:
+
+✅ **Conservé:**
+- Règle des 90 minutes (cœur métier)
+- Authentification bcrypt + JWT
+- Séparation business.py / main.py
+- RBAC à 3 niveaux
+- Calcul automatique de facturation
+
+✨ **Simplifié:**
+- Modèles Pydantic (2 au lieu de 4 par entité)
+- Validation simplifiée sur certains endpoints
+- Documentation inline pour faciliter la compréhension
+
+## 📚 Documentation Complète
+
+- `objectifs.md` - Cahier des charges initial
+- `DATA_DICTIONARY.md` - Dictionnaire de données
+- `PROJET_DOCUMENTATION.md` - Documentation technique détaillée
+
+## 📖 Documentation API Interactive
+
+La documentation Swagger est disponible à : `http://127.0.0.1:8000/docs`
+
+---
+
+**Projet réalisé pour IPSA - Présentation académique**

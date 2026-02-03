@@ -34,7 +34,24 @@
 
     // Redirect to dashboard if already logged in
     if (sessionStorage.getItem('loggedInUser')) {
-        window.location.href = 'dashboard.html';
+        const user = JSON.parse(sessionStorage.getItem('loggedInUser'));
+        redirectToDashboard(user.type);
+    }
+
+    function redirectToDashboard(userType) {
+        switch(userType) {
+            case 'pilote':
+                window.location.href = 'pilote_dashboard.html';
+                break;
+            case 'agent':
+                window.location.href = 'agent_dashboard.html';
+                break;
+            case 'gestionnaire':
+                window.location.href = 'gestionnaire_dashboard.html';
+                break;
+            default:
+                window.location.href = 'dashboard.html';
+        }
     }
 
     loginForm.addEventListener('submit', async function(event) {
@@ -53,13 +70,17 @@
             if (response.ok) {
                 outputDiv.innerHTML += `&gt; <span style="color: #00ff00;">SUCCESS:</span> Login successful!
 `;
+                // Store access_token and token_type in sessionStorage
+                sessionStorage.setItem('access_token', data.access_token);
+                sessionStorage.setItem('token_type', data.token_type);
+
                 const loggedInUser = { id: data.user_id, type: data.user_type, name: username };
                 
                 // Store user info in session storage
                 sessionStorage.setItem('loggedInUser', JSON.stringify(loggedInUser));
 
-                // Redirect to dashboard
-                window.location.href = 'dashboard.html';
+                // Redirect to appropriate dashboard
+                redirectToDashboard(data.user_type);
             } else {
                 outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERROR:</span> ${data.detail || 'Authentication failed'}
 

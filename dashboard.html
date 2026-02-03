@@ -43,6 +43,17 @@
         menuTitle.innerText = `Welcome, ${loggedInUser.name} (level: ${loggedInUser.type})`;
 
         let optionsHtml = '';
+
+        // Add Creneau management/reservation button
+        if (loggedInUser.type === 'gestionnaire') {
+            optionsHtml += '<button class="creneau-access-button" data-creneau-page="manage_creneaux.html">Gérer les Créneaux</button><br><br>';
+        } else if (loggedInUser.type === 'agent') {
+            optionsHtml += '<button class="creneau-access-button" data-creneau-page="agent_dashboard.html">Voir les Créneaux</button><br><br>';
+        } else if (loggedInUser.type === 'pilote') {
+            optionsHtml += '<button class="creneau-access-button" data-creneau-page="reserve_creneau.html">Réserver un Créneau</button><br><br>';
+        }
+        
+        // Existing account creation options
         if (loggedInUser.type === 'gestionnaire') {
             optionsHtml += '<p>Options de création :</p>';
             optionsHtml += '<button data-action="create-gestionnaire">Créer un compte Gestionnaire</button><br><br>';
@@ -52,7 +63,8 @@
             optionsHtml += '<p>Options de création :</p>';
             optionsHtml += '<button data-action="create-pilote">Créer un compte Pilote</button>';
         } else {
-            optionsHtml += '<p>Aucune action de création de compte disponible.</p>';
+            // This 'else' block will now only be for general messages, if creneau button not added above
+            // optionsHtml += '<p>Aucune action de création de compte disponible.</p>';
         }
         menuOptions.innerHTML = optionsHtml;
     }
@@ -64,8 +76,13 @@
 
     menuOptions.addEventListener('click', function(event) {
         if (event.target.tagName === 'BUTTON') {
-            const action = event.target.getAttribute('data-action');
-            if (action && action.startsWith('create-')) {
+            if (event.target.classList.contains('creneau-access-button')) {
+                const page = event.target.getAttribute('data-creneau-page');
+                if (page) {
+                    window.location.href = page;
+                }
+            } else if (event.target.getAttribute('data-action') && event.target.getAttribute('data-action').startsWith('create-')) {
+                const action = event.target.getAttribute('data-action');
                 const userType = action.split('-')[1];
                 window.location.href = `create_user.html?type=${userType}`;
             }

@@ -27,6 +27,12 @@
             <div id="financials"></div>
         </div>
         <br>
+        <h4>Actions administratives</h4>
+        <button id="createGestionnaireButton">Créer un Gestionnaire</button>
+        <button id="createAgentButton">Créer un Agent</button>
+        <button id="createPiloteButton">Créer un Pilote</button>
+        <br><br>
+        <button id="manageCreneauxButton">Gérer les Créneaux</button>
         <button id="logoutButton">Logout</button>
     </div>
 </div>
@@ -65,13 +71,37 @@
             sessionStorage.removeItem('loggedInUser');
             window.location.href = 'login.html';
         });
+
+        // Manage Creneaux Button
+        const manageCreneauxButton = document.getElementById('manageCreneauxButton');
+        manageCreneauxButton.addEventListener('click', () => {
+            window.location.href = 'manage_creneaux.html';
+        });
+
+        // Create User Buttons
+        document.getElementById('createGestionnaireButton').addEventListener('click', () => {
+            window.location.href = 'create_user.html?type=gestionnaire';
+        });
+        document.getElementById('createAgentButton').addEventListener('click', () => {
+            window.location.href = 'create_user.html?type=agent';
+        });
+        document.getElementById('createPiloteButton').addEventListener('click', () => {
+            window.location.href = 'create_user.html?type=pilote';
+        });
     });
 
     async function fetchData(endpoint) {
+        const token = sessionStorage.getItem('access_token');
+        if (!token) {
+            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
+`;
+            setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+            return null;
+        }
+
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             headers: {
-                'X-User-Id': loggedInUser.id,
-                'X-User-Type': loggedInUser.type
+                'Authorization': `Bearer ${token}`
             }
         });
         if (!response.ok) {

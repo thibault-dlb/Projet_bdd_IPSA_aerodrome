@@ -41,10 +41,9 @@ class PiloteBase(BaseModel):
     username: str
     license: str
     medical: str
-    password: str
 
 class PiloteCreate(PiloteBase):
-    pass
+    password: str
 
 class Pilote(PiloteBase):
     Id: int
@@ -72,6 +71,7 @@ class Avion(AvionBase):
 class CreneauBase(BaseModel):
     debut_prevu: str
     fin_prevu: str
+    avion_id: Optional[str] = None
     debut_reel: Optional[str] = None
     fin_reel: Optional[str] = None
     etat: str
@@ -95,11 +95,10 @@ class GestionnaireBase(BaseModel):
     prenom: str
     tel: str
     mail: str
-    password: str
     username: str
 
 class GestionnaireCreate(GestionnaireBase):
-    pass
+    password: str
 
 class Gestionnaire(GestionnaireBase):
     Id: int
@@ -113,10 +112,9 @@ class AgentExploitationBase(BaseModel):
     tel: str
     mail: str
     username: str
-    password: str
 
 class AgentExploitationCreate(AgentExploitationBase):
-    pass
+    password: str
 
 class AgentExploitation(AgentExploitationBase):
     Id: int

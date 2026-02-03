@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Réserver un Créneau</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="terminal">
+    <div id="output"></div>
+    
+    <div id="reservation-container">
+        <h2>Réserver un Créneau</h2>
+        <form id="creneauForm">
+            <div>
+                <label for="avion">Votre Avion:</label>
+                <select id="avion" name="immatriculation" required></select>
+            </div>
+            <br>
+            <div>
+                <label for="infrastructure">Infrastructure:</label>
+                <select id="infrastructure" name="infrastructure_id" required></select>
+            </div>
+            <br>
+            <div>
+                <label for="debut_prevu">Début Prévu:</label>
+                <input type="datetime-local" id="debut_prevu" name="debut_prevu" required>
+            </div>
+            <br>
+            <div>
+                <label for="fin_prevu">Fin Prévue:</label>
+                <input type="datetime-local" id="fin_prevu" name="fin_prevu" required>
+            </div>
+            <br>
+            <button type="submit">Réserver le Créneau</button>
+        </form>
+        <br>
+        <button id="backToDashboard">Retour au Tableau de Bord</button>
+    </div>
+</div>
+
+<script>
+    const outputDiv = document.getElementById('output');
+    const creneauForm = document.getElementById('creneauForm');
+    const avionSelect = document.getElementById('avion');
+    const infrastructureSelect = document.getElementById('infrastructure');
+    const backToDashboardButton = document.getElementById('backToDashboard');
+
+    const API_BASE_URL = 'http://127.0.0.1:8000';
+
+    let loggedInUser = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const userJson = sessionStorage.getItem('loggedInUser');
+        if (!userJson) {
+            window.location.href = 'login.html';
+            return;
+        }
+        loggedInUser = JSON.parse(userJson);
+
+        if (loggedInUser.type !== 'pilote') {
+            outputDiv.innerHTML = '<span style="color: #ff0000;">ACCÈS REFUSÉ:</span> Seuls les pilotes peuvent réserver des créneaux.';
+            creneauForm.style.display = 'none';
+            return;
+        }
+
+        await fetchAvions();
+        await fetchInfrastructures();
+    });
+
+    backToDashboardButton.addEventListener('click', () => {
+        window.location.href = 'pilote_dashboard.html';
+    });
+
+    async function fetchAvions() {
+        try {
+            const token = sessionStorage.getItem('access_token'); // Assuming token is stored here
+            if (!token) {
+                outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
+`;
+                setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+                return;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/pilotes/me/avions/`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const avions = await response.json();
+
+            if (response.ok) {
+                avionSelect.innerHTML = '';
+                if (avions.length === 0) {
+                    avionSelect.innerHTML = '<option value="">Aucun avion enregistré</option>';
+                    outputDiv.innerHTML += `&gt; <span style="color: #ffcc00;">ATTENTION:</span> Aucun avion trouvé pour ce pilote. Vous ne pouvez pas réserver de créneau.
+`;
+                    creneauForm.style.display = 'none';
+                    return;
+                }
+                avions.forEach(avion => {
+                    const option = document.createElement('option');
+                    option.value = avion.Immatriculation;
+                    option.textContent = `${avion.marque} ${avion.modele} (${avion.Immatriculation})`;
+                    avionSelect.appendChild(option);
+                });
+            } else {
+                outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR:</span> Impossible de charger les avions : ${avions.detail || response.statusText}
+`;
+                creneauForm.style.display = 'none';
+            }
+        } catch (error) {
+            outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR SYSTÈME:</span> Impossible de connecter à l'API pour les avions.
+`;
+            creneauForm.style.display = 'none';
+        }
+    }
+
+    async function fetchInfrastructures() {
+        try {
+            // Infrastructures are generally public, but can be secured if needed
+            const response = await fetch(`${API_BASE_URL}/infrastructures/`);
+            const infrastructures = await response.json();
+
+            if (response.ok) {
+                infrastructureSelect.innerHTML = '';
+                if (infrastructures.length === 0) {
+                    infrastructureSelect.innerHTML = '<option value="">Aucune infrastructure disponible</option>';
+                    outputDiv.innerHTML += `&gt; <span style="color: #ffcc00;">ATTENTION:</span> Aucune infrastructure n'est disponible.
+`;
+                    creneauForm.style.display = 'none';
+                    return;
+                }
+                infrastructures.forEach(infra => {
+                    const option = document.createElement('option');
+                    option.value = infra.Id;
+                    option.textContent = `${infra.nom} (${infra.type})`;
+                    infrastructureSelect.appendChild(option);
+                });
+            } else {
+                outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR:</span> Impossible de charger les infrastructures : ${infrastructures.detail || response.statusText}
+`;
+                creneauForm.style.display = 'none';
+            }
+        } catch (error) {
+            outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR SYSTÈME:</span> Impossible de connecter à l'API pour les infrastructures.
+`;
+            creneauForm.style.display = 'none';
+        }
+    }
+
+    creneauForm.addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const debutPrev = new Date(document.getElementById('debut_prevu').value);
+        const finPrev = new Date(document.getElementById('fin_prevu').value);
+
+        if (finPrev - debutPrev < 90 * 60 * 1000) { // 90 minutes in milliseconds
+            outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR:</span> La durée minimale d'un créneau est de 90 minutes.
+`;
+            return;
+        }
+
+        const creneauData = {
+            avion_id: avionSelect.value,
+            infrastructure_id: parseInt(infrastructureSelect.value),
+            debut_prevu: debutPrev.toISOString().slice(0, 19), // ISO format without Z
+            fin_prevu: finPrev.toISOString().slice(0, 19),   // ISO format without Z
+            etat: "Demandé", // Added this line
+            // pilote_id will be set by the backend from the token
+            // cout_total will be set by the backend
+        };
+        
+        outputDiv.innerHTML += `&gt; Tentative de réservation de créneau...
+`;
+
+        try {
+            const token = sessionStorage.getItem('access_token');
+            if (!token) {
+                outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
+`;
+                setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+                return;
+            }
+
+                        const response = await fetch(`${API_BASE_URL}/creneaux/`, {
+
+                            method: 'POST',
+
+                            headers: {
+
+                                'Content-Type': 'application/json',
+
+                                'Authorization': `Bearer ${token}`
+
+                            },
+
+                            body: JSON.stringify(creneauData)
+
+                        });
+
+            
+
+                        if (response.ok) {
+
+                            const result = await response.json();
+
+                            outputDiv.innerHTML += `&gt; <span style="color: #00ff00;">SUCCÈS:</span> Créneau réservé avec succès! ID: ${result.Id}
+
+            `;
+
+                            creneauForm.reset(); // Clear the form
+
+                                    } else {
+
+                                        let errorBody;
+
+                                        try {
+
+                                            errorBody = await response.json();
+
+                                        } catch (jsonError) {
+
+                                            errorBody = await response.text();
+
+                                        }
+
+                        
+
+                                        let errorMessage = `Erreur lors de la réservation du créneau. Status: ${response.status}`;
+
+                                        if (typeof errorBody === 'object' && errorBody !== null) {
+
+                                            if (Array.isArray(errorBody.detail)) { // Check if detail is an array
+
+                                                errorMessage += ":\n" + errorBody.detail.map(err => {
+
+                                                    return `${err.loc.join('.')} - ${err.msg}`;
+
+                                                }).join('\n');
+
+                                            } else if (errorBody.detail) {
+
+                                                errorMessage += `: ${errorBody.detail}`;
+
+                                            } else if (errorBody.message) {
+
+                                                errorMessage += `: ${errorBody.message}`;
+
+                                            } else {
+
+                                                errorMessage += `: ${JSON.stringify(errorBody, null, 2)}`; // Pretty print for objects
+
+                                            }
+
+                                        } else if (typeof errorBody === 'string' && errorBody.length > 0) {
+
+                                            errorMessage += `: ${errorBody}`;
+
+                                        }
+
+                        
+
+                                        outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR:</span> <pre>${errorMessage}</pre>
+
+                        `; // Use <pre> for preformatted text, especially with newlines
+
+                                    }
+
+                    } catch (error) {
+
+                        outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR SYSTÈME:</span> Impossible de connecter à l'API pour la réservation de créneau. Détails: ${error.message || error}
+
+            `;
+
+                    }
+    });
+</script>
+
+</body>
+</html>

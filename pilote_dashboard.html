@@ -35,15 +35,10 @@
             <!-- Creneaux -->
             <h4>Mes Créneaux</h4>
             <div id="creneaux-list"></div>
-            <form id="add-creneau-form">
-                <h5>Demander un créneau</h5>
-                <select name="infrastructure_id"></select>
-                <input type="datetime-local" name="debut_prevu" required>
-                <input type="datetime-local" name="fin_prevu" required>
-                <button type="submit">Demander</button>
-            </form>
         </div>
         <br>
+        <button id="reserveCreneauButton">Réserver un nouveau créneau</button>
+        <button id="viewCreneauxButton">Voir tous mes créneaux</button>
         <button id="messageAgentButton">Message Agent</button>
         <button id="logoutButton">Logout</button>
     </div>
@@ -57,7 +52,6 @@
     const avionsListDiv = document.getElementById('avions-list');
     const creneauxListDiv = document.getElementById('creneaux-list');
     const addAvionForm = document.getElementById('add-avion-form');
-    const addCreneauForm = document.getElementById('add-creneau-form');
     const logoutButton = document.getElementById('logoutButton');
 
     let loggedInUser = null;
@@ -88,7 +82,18 @@
         });
 
         addAvionForm.addEventListener('submit', handleAddAvion);
-        addCreneauForm.addEventListener('submit', handleAddCreneau);
+
+        // Reserve Creneau Button
+        const reserveCreneauButton = document.getElementById('reserveCreneauButton');
+        reserveCreneauButton.addEventListener('click', () => {
+            window.location.href = 'reserve_creneau.html';
+        });
+
+        // View Creneaux Button
+        const viewCreneauxButton = document.getElementById('viewCreneauxButton');
+        viewCreneauxButton.addEventListener('click', () => {
+            document.getElementById('creneaux-list').scrollIntoView({ behavior: 'smooth' });
+        });
 
         // Message Agent Button
         const messageAgentButton = document.getElementById('messageAgentButton');
@@ -100,10 +105,17 @@
     });
 
     async function fetchData(endpoint) {
+        const token = sessionStorage.getItem('access_token');
+        if (!token) {
+            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
+`;
+            setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+            return null;
+        }
+
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             headers: {
-                'X-User-Id': loggedInUser.id,
-                'X-User-Type': loggedInUser.type
+                'Authorization': `Bearer ${token}`
             }
         });
         if (!response.ok) {
@@ -117,12 +129,19 @@
     }
     
     async function postData(endpoint, data) {
+        const token = sessionStorage.getItem('access_token');
+        if (!token) {
+            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
+`;
+            setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+            return null;
+        }
+
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-User-Id': loggedInUser.id,
-                'X-User-Type': loggedInUser.type
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(data)
         });
@@ -152,18 +171,24 @@
     }
 
     async function loadAvions() {
-        const avions = await fetchData('/avions/');
+        const avions = await fetchData('/pilotes/me/avions/');
         if (avions) {
-            const myAvions = avions.filter(a => a.pilote_id === loggedInUser.id);
-            avionsListDiv.innerHTML = '<ul>' + myAvions.map(a => `<li>${a.Immatriculation} (${a.marque} ${a.modele})</li>`).join('') + '</ul>';
+            if (avions.length === 0) {
+                avionsListDiv.innerHTML = '<p>Aucun aéronef enregistré.</p>';
+            } else {
+                avionsListDiv.innerHTML = '<ul>' + avions.map(a => `<li>${a.Immatriculation} (${a.marque} ${a.modele})</li>`).join('') + '</ul>';
+            }
         }
     }
 
     async function loadCreneaux() {
-        const creneaux = await fetchData('/creneaux/');
+        const creneaux = await fetchData('/pilotes/me/creneaux/');
         if (creneaux) {
-            const myCreneaux = creneaux.filter(c => c.pilote_id === loggedInUser.id);
-            creneauxListDiv.innerHTML = '<ul>' + myCreneaux.map(c => `<li>${c.debut_prevu} - ${c.fin_prevu} (${c.etat})</li>`).join('') + '</ul>';
+            if (creneaux.length === 0) {
+                creneauxListDiv.innerHTML = '<p>Aucun créneau enregistré.</p>';
+            } else {
+                creneauxListDiv.innerHTML = '<ul>' + creneaux.map(c => `<li>${c.debut_prevu} - ${c.fin_prevu} (${c.etat})</li>`).join('') + '</ul>';
+            }
         }
     }
     
@@ -172,12 +197,6 @@
         if (carburants) {
             const carburantSelect = addAvionForm.querySelector('select[name="carburant_id"]');
             carburantSelect.innerHTML = carburants.map(c => `<option value="${c.Nom}">${c.Nom}</option>`).join('');
-        }
-        
-        const infrastructures = await fetchData('/infrastructures/');
-        if (infrastructures) {
-            const infraSelect = addCreneauForm.querySelector('select[name="infrastructure_id"]');
-            infraSelect.innerHTML = infrastructures.map(i => `<option value="${i.Id}">${i.nom} (${i.type})</option>`).join('');
         }
     }
     
@@ -195,20 +214,7 @@
         }
     }
     
-    async function handleAddCreneau(event) {
-        event.preventDefault();
-        const formData = new FormData(addCreneauForm);
-        const data = Object.fromEntries(formData.entries());
-        data.infrastructure_id = parseInt(data.infrastructure_id);
-        const newCreneau = await postData('/creneaux/', data);
-        if (newCreneau) {
-            outputDiv.innerHTML += `> <span style="color: #00ff00;">SUCCESS:</span> Créneau demandé pour ${newCreneau.debut_prevu}.
 
-`;
-            addCreneauForm.reset();
-            loadCreneaux();
-        }
-    }
 
 </script>
 

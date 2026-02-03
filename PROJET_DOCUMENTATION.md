@@ -73,8 +73,8 @@ Le projet couvre une grande partie des objectifs initiaux :
 
 Certaines fonctionnalités avancées listées dans `objectifs.md` ne sont pas encore implémentées dans le code fourni :
 
-*   **Logique de gestion des créneaux :** La vérification de l'intervalle de 90 minutes et le cycle de vie des états de créneaux (`Demandé`, `Confirmé`, etc.) ne sont pas implémentés dans l'API.
-*   **Calculs automatiques :** Le calcul automatique du `cout_total` pour les créneaux n'est pas présent.
+*   **Logique de gestion des créneaux :** La vérification de l'intervalle de 90 minutes lors de la création de créneaux et la gestion du cycle de vie des états de créneaux (`Demandé`, `Confirmé`, etc.) sont implémentées dans l'API.
+*   **Calculs automatiques :** Le calcul automatique du `cout_total` pour les créneaux est implémenté lors de la création et de la mise à jour des créneaux.
 *   **Reporting et statistiques :** Les fonctionnalités de visualisation des flux et des revenus pour les gestionnaires ne sont pas développées.
 *   **Interface plus riche :** Le frontend pourrait être étendu pour inclure la gestion des avions, la demande de créneaux, la consultation des factures, etc.
 

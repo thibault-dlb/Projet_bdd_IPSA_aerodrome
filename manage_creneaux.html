@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gérer les Créneaux - Gestion Aéroport</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="terminal">
+    <div id="output"></div>
+    
+    <div id="management-container">
+        <h2>Gérer les Créneaux</h2>
+        <div id="creneaux-list-manager">
+            <!-- Creneaux will be loaded here -->
+        </div>
+        <br>
+        <button id="backToDashboard">Retour au Tableau de Bord</button>
+    </div>
+</div>
+
+<script>
+    const outputDiv = document.getElementById('output');
+    const creneauxListManagerDiv = document.getElementById('creneaux-list-manager');
+    const backToDashboardButton = document.getElementById('backToDashboard');
+
+    const API_BASE_URL = 'http://127.0.0.1:8000';
+
+    const validTransitions = {
+        "Demandé": ["Confirmé", "Annulé"],
+        "Confirmé": ["Autorisé", "Annulé"],
+        "Autorisé": ["Achevé"],
+        "Achevé": [],
+        "Annulé": []
+    };
+
+    let loggedInUser = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const userJson = sessionStorage.getItem('loggedInUser');
+        if (!userJson) {
+            window.location.href = 'login.html';
+            return;
+        }
+        loggedInUser = JSON.parse(userJson);
+
+        if (loggedInUser.type !== 'gestionnaire') {
+            outputDiv.innerHTML = '<span style="color: #ff0000;">ACCÈS REFUSÉ:</span> Seuls les gestionnaires peuvent gérer les créneaux.';
+            // Hide controls or redirect
+            creneauxListManagerDiv.innerHTML = '';
+            return;
+        }
+
+        await loadAllCreneaux();
+    });
+
+    backToDashboardButton.addEventListener('click', () => {
+        window.location.href = 'gestionnaire_dashboard.html';
+    });
+
+    async function loadAllCreneaux() {
+        try {
+            const token = sessionStorage.getItem('access_token');
+            if (!token) {
+                outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
+`;
+                setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+                return;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/creneaux/`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const creneaux = await response.json();
+
+            if (response.ok) {
+                if (creneaux.length === 0) {
+                    creneauxListManagerDiv.innerHTML = '<p>Aucun créneau à gérer.</p>';
+                    return;
+                }
+                creneauxListManagerDiv.innerHTML = '<table>' + 
+                    '<thead><tr><th>ID</th><th>Pilote</th><th>Avion</th><th>Infrastructure</th><th>Début Prévu</th><th>Fin Prévue</th><th>État</th><th>Actions</th></tr></thead>' +
+                    '<tbody>' +
+                    creneaux.map(c => `
+                        <tr>
+                            <td>${c.Id}</td>
+                            <td>${c.pilote_id}</td>
+                            <td>${c.avion_id}</td>
+                            <td>${c.infrastructure_id}</td>
+                            <td>${c.debut_prevu}</td>
+                            <td>${c.fin_prevu}</td>
+                            <td>
+                                ${(() => {
+                                    const currentState = c.etat;
+                                    const isFinalState = currentState === 'Achevé' || currentState === 'Annulé';
+                                    const allowedNextStates = validTransitions[currentState] || [];
+                                    
+                                    let optionsHtml = `<select class="creneau-status" data-creneau-id="${c.Id}" ${isFinalState ? 'disabled' : ''}>`;
+                                    
+                                    // Always include the current state
+                                    optionsHtml += `<option value="${currentState}" selected>${currentState}</option>`;
+
+                                    // Add allowed next states, excluding the current state if it's already selected
+                                    allowedNextStates.forEach(state => {
+                                        if (state !== currentState) {
+                                            optionsHtml += `<option value="${state}">${state}</option>`;
+                                        }
+                                    });
+                                    optionsHtml += `</select>`;
+                                    return optionsHtml;
+                                })()}
+                            </td>
+                            <td><button class="update-status-button" data-creneau-id="${c.Id}" ${c.etat === 'Achevé' || c.etat === 'Annulé' ? 'disabled' : ''}>Mettre à jour</button></td>
+                        </tr>
+                    `).join('') +
+                    '</tbody></table>';
+
+                // Add event listeners for status updates
+                document.querySelectorAll('.update-status-button').forEach(button => {
+                    button.addEventListener('click', handleUpdateCreneauStatus);
+                });
+
+            } else {
+                outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR:</span> Impossible de charger les créneaux : ${creneaux.detail || response.statusText}
+`;
+            }
+        } catch (error) {
+            outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR SYSTÈME:</span> Impossible de connecter à l'API pour les créneaux.
+`;
+        }
+    }
+
+    async function handleUpdateCreneauStatus(event) {
+        const creneauId = event.target.dataset.creneauId;
+        const selectElement = document.querySelector(`.creneau-status[data-creneau-id="${creneauId}"]`);
+        const newStatus = selectElement.value;
+
+        // Fetch current creneau data to send complete object for PUT
+        try {
+            const token = sessionStorage.getItem('access_token');
+            const currentCreneauResponse = await fetch(`${API_BASE_URL}/creneaux/${creneauId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const currentCreneau = await currentCreneauResponse.json();
+
+            if (!currentCreneauResponse.ok) {
+                 outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR:</span> Impossible de récupérer les données du créneau actuel pour mise à jour : ${currentCreneau.detail || currentCreneauResponse.statusText}
+`;
+                return;
+            }
+
+            // Update only the status, keep other fields the same
+            const updatedData = { ...currentCreneau, etat: newStatus };
+            // Remove 'Id' from updatedData as it's not expected in the request body for PUT
+            delete updatedData.Id;
+            // Remove 'cout_total' from updatedData as it's computed server side
+            delete updatedData.cout_total;
+            // The API expects 'pilote_id' as int, ensure it's not None or string
+            if (updatedData.pilote_id === null) delete updatedData.pilote_id;
+            if (updatedData.infrastructure_id === null) delete updatedData.infrastructure_id;
+            if (updatedData.avion_id === null) delete updatedData.avion_id;
+            if (updatedData.facture_id === null) delete updatedData.facture_id;
+            if (updatedData.avitaillement_id === null) delete updatedData.avitaillement_id;
+
+
+            const response = await fetch(`${API_BASE_URL}/creneaux/${creneauId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updatedData)
+            });
+            const result = await response.json();
+
+            if (response.ok) {
+                outputDiv.innerHTML += `&gt; <span style="color: #00ff00;">SUCCÈS:</span> Créneau ${creneauId} mis à jour au statut: ${newStatus}
+`;
+                await loadAllCreneaux(); // Reload to reflect changes
+            } else {
+                outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR:</span> ${result.detail || 'Erreur lors de la mise à jour du créneau.'}
+`;
+            }
+        } catch (error) {
+            outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR SYSTÈME:</span> Impossible de connecter à l'API pour la mise à jour du créneau.
+`;
+        }
+    }
+</script>
+
+</body>
+</html>

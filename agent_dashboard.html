@@ -23,6 +23,8 @@
             <div id="all-creneaux"></div>
         </div>
         <br>
+        <button id="viewAllCreneauxButton">Voir tous les créneaux</button>
+        <button id="createPiloteButton">Créer un Pilote</button>
         <button id="logoutButton">Logout</button>
     </div>
 </div>
@@ -59,6 +61,20 @@
             window.location.href = 'login.html';
         });
         
+        // View All Creneaux Button
+        const viewAllCreneauxButton = document.getElementById('viewAllCreneauxButton');
+        viewAllCreneauxButton.addEventListener('click', () => {
+            allCreneauxDiv.scrollIntoView({ behavior: 'smooth' });
+            outputDiv.innerHTML += `> <span style="color: #00ff00;">INFO:</span> Affichage de tous les créneaux.
+
+`;
+        });
+        
+        // Create Pilote Button
+        document.getElementById('createPiloteButton').addEventListener('click', () => {
+            window.location.href = 'create_user.html?type=pilote';
+        });
+        
         creneauxRequestsDiv.addEventListener('click', handleCreneauAction);
         
         creneauxRequestsDiv.addEventListener('click', (event) => {
@@ -70,10 +86,17 @@
     });
 
     async function fetchData(endpoint) {
+        const token = sessionStorage.getItem('access_token');
+        if (!token) {
+            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
+`;
+            setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+            return null;
+        }
+
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             headers: {
-                'X-User-Id': loggedInUser.id,
-                'X-User-Type': loggedInUser.type
+                'Authorization': `Bearer ${token}`
             }
         });
         if (!response.ok) {
@@ -87,12 +110,19 @@
     }
     
     async function updateData(endpoint, data) {
+        const token = sessionStorage.getItem('access_token');
+        if (!token) {
+            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
+`;
+            setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+            return null;
+        }
+
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'X-User-Id': loggedInUser.id,
-                'X-User-Type': loggedInUser.type
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(data)
         });
@@ -112,7 +142,21 @@
             const requests = creneaux.filter(c => c.etat === 'Demandé');
             creneauxRequestsDiv.innerHTML = '<ul>' + requests.map(c => `<li>${c.debut_prevu} - ${c.fin_prevu} <button data-id="${c.Id}" data-action="Confirmé">Confirmer</button> <button data-id="${c.Id}" data-action="Annulé">Annuler</button> <button data-pilote-id="${c.pilote_id}" class="message-pilot-btn">Message Pilote</button></li>`).join('') + '</ul>';
             
-            allCreneauxDiv.innerHTML = '<ul>' + creneaux.map(c => `<li>${c.debut_prevu} - ${c.fin_prevu} (${c.etat})</li>`).join('') + '</ul>';
+            allCreneauxDiv.innerHTML = '<table>' + 
+                '<thead><tr><th>ID</th><th>Pilote</th><th>Avion</th><th>Infrastructure</th><th>Début Prévu</th><th>Fin Prévue</th><th>État</th></tr></thead>' +
+                '<tbody>' +
+                creneaux.map(c => `
+                    <tr>
+                        <td>${c.Id}</td>
+                        <td>${c.pilote_id}</td>
+                        <td>${c.avion_id}</td>
+                        <td>${c.infrastructure_id}</td>
+                        <td>${c.debut_prevu}</td>
+                        <td>${c.fin_prevu}</td>
+                        <td>${c.etat}</td>
+                    </tr>
+                `).join('') +
+                '</tbody></table>';
         }
     }
     
