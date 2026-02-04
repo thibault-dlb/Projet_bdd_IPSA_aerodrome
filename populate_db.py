@@ -80,9 +80,9 @@ def populate_database(db_path):
 
         # --- Table: Creneaux ---
         creneaux = [
-            (1, '2026-01-10 14:00', '2026-01-10 15:00', '2026-01-10 14:05', '2026-01-10 14:55', 'Terminé', 343.42 + 50, 1, 1, 2, 1),
-            (2, '2026-01-11 08:30', '2026-01-11 10:00', '2026-01-11 08:45', '2026-01-11 09:50', 'Terminé', 682.50 + 150, 2, 1, 1, 2),
-            (3, '2026-01-20 10:00', '2026-01-20 12:00', None, None, 'Planifié', None, None, 2, 3, None)
+            (1, '2026-01-10 14:00', '2026-01-10 15:00', '2026-01-10 14:05', '2026-01-10 14:55', 'Achevé', 343.42 + 50, 1, 1, 2, 1),
+            (2, '2026-01-11 08:30', '2026-01-11 10:00', '2026-01-11 08:45', '2026-01-11 09:50', 'Achevé', 682.50 + 150, 2, 1, 1, 2),
+            (3, '2026-01-20 10:00', '2026-01-20 12:00', None, None, 'Demandé', None, None, 2, 3, None)
         ]
         cursor.executemany("INSERT OR IGNORE INTO Creneaux (Id, debut_prevu, fin_prevu, debut_reel, fin_reel, etat, cout_total, avitaillement_id, pilote_id, infrastructure_id, facture_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", creneaux)
         

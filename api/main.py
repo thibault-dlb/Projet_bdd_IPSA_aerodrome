@@ -50,6 +50,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import os
 
 # Modèle Pydantic pour la réponse du token JWT
 class Token(BaseModel):
@@ -59,7 +60,12 @@ class Token(BaseModel):
     user_type: str
 
 # Configuration JWT
-SECRET_KEY = "YOUR_SUPER_SECRET_KEY"  # Pour la démo uniquement
+# IMPORTANT: Générer une vraie clé avec: python -c "import secrets; print(secrets.token_urlsafe(32))"
+# Puis définir la variable d'environnement SECRET_KEY
+SECRET_KEY = os.getenv("SECRET_KEY", "votre-cle-temporaire-a-changer-en-production")
+if SECRET_KEY == "votre-cle-temporaire-a-changer-en-production":
+    import warnings
+    warnings.warn("⚠️  WARNING: Using default SECRET_KEY. Set SECRET_KEY environment variable for production!")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -476,20 +482,19 @@ async def update_creneau(creneau_id: int, updated_data: CreneauCreate):
     if not existing_creneau:
         raise HTTPException(status_code=404, detail="Creneau not found")
 
-    # Validate state transition
-    current_etat = existing_creneau[0]["etat"]
-    is_valid, error_msg = validate_creneau_state_transition(current_etat, updated_data.etat)
-    if not is_valid:
-        raise HTTPException(status_code=400, detail=error_msg)
-    
+
     update_data = updated_data.model_dump(exclude_unset=True)
-    update_data["cout_total"] = calculate_creneau_cost(
-        db,
-        updated_data.infrastructure_id,
-        updated_data.avitaillement_id,
-        updated_data.debut_prevu,
-        updated_data.fin_prevu
-    )
+    
+    # Recalculate cost if time or infrastructure fields are updated
+    if any(key in update_data for key in ["infrastructure_id", "avitaillement_id", "debut_prevu", "fin_prevu"]):
+        # Get current values for fields not being updated
+        current = existing_creneau[0]
+        infra_id = update_data.get("infrastructure_id", current["infrastructure_id"])
+        avit_id = update_data.get("avitaillement_id", current["avitaillement_id"])
+        debut = update_data.get("debut_prevu", current["debut_prevu"])
+        fin = update_data.get("fin_prevu", current["fin_prevu"])
+        
+        update_data["cout_total"] = calculate_creneau_cost(db, infra_id, avit_id, debut, fin)
 
     rows_affected = db.update("Creneaux", data=update_data, filters={"Id": creneau_id})
     if rows_affected == 0:
