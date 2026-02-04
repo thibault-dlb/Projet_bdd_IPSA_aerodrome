@@ -1,104 +1,184 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voir les Créneaux - Gestion Aéroport</title>
+    <title>Mes Créneaux - Gestion Aérodrome</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .creneau-card {
+            background-color: #1a1a1a;
+            border: 1px solid #00ff00;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .creneau-header {
+            font-size: 1.2em;
+            color: #00ffff;
+            margin-bottom: 10px;
+        }
+
+        .creneau-detail {
+            margin: 5px 0;
+            padding-left: 10px;
+        }
+
+        .etat-Demandé {
+            color: #ffff00;
+        }
+
+        .etat-Confirmé {
+            color: #00ffff;
+        }
+
+        .etat-Autorisé {
+            color: #00ff00;
+        }
+
+        .etat-Achevé {
+            color: #808080;
+        }
+
+        .etat-Annulé {
+            color: #ff0000;
+        }
+
+        .cout-highlight {
+            color: #ffff00;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+    </style>
 </head>
+
 <body>
 
-<div id="terminal">
-    <div id="output"></div>
-    
-    <div id="view-container">
-        <h2>Voir les Créneaux</h2>
-        <div id="creneaux-list-viewer">
-            <!-- Creneaux will be loaded here -->
+    <div id="terminal">
+        <div id="output"></div>
+
+        <div id="view-container">
+            <h2>📋 Mes Créneaux de Vol</h2>
+            <div id="creneaux-list-viewer">
+                <!-- Creneaux will be loaded here -->
+            </div>
+            <br>
+            <button id="reserveNewButton">➕ Réserver un nouveau créneau</button>
+            <button id="backToDashboard">🔙 Retour au Tableau de Bord</button>
         </div>
-        <br>
-        <button id="backToDashboard">Retour au Tableau de Bord</button>
     </div>
-</div>
 
-<script>
-    const outputDiv = document.getElementById('output');
-    const creneauxListViewerDiv = document.getElementById('creneaux-list-viewer');
-    const backToDashboardButton = document.getElementById('backToDashboard');
+    <script>
+        const outputDiv = document.getElementById('output');
+        const creneauxListViewerDiv = document.getElementById('creneaux-list-viewer');
+        const backToDashboardButton = document.getElementById('backToDashboard');
+        const reserveNewButton = document.getElementById('reserveNewButton');
 
-    const API_BASE_URL = 'http://127.0.0.1:8000';
+        const API_BASE_URL = 'http://127.0.0.1:8000';
 
-    let loggedInUser = null;
+        let loggedInUser = null;
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        const userJson = sessionStorage.getItem('loggedInUser');
-        if (!userJson) {
-            window.location.href = 'login.html';
-            return;
-        }
-        loggedInUser = JSON.parse(userJson);
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userJson = sessionStorage.getItem('loggedInUser');
+            if (!userJson) {
+                window.location.href = 'login.html';
+                return;
+            }
+            loggedInUser = JSON.parse(userJson);
 
-        if (loggedInUser.type !== 'agent' && loggedInUser.type !== 'gestionnaire') {
-            outputDiv.innerHTML = '<span style="color: #ff0000;">ACCÈS REFUSÉ:</span> Seuls les agents et gestionnaires peuvent voir les créneaux.';
-            creneauxListViewerDiv.innerHTML = '';
-            return;
-        }
-
-        await loadAllCreneaux();
-    });
-
-    backToDashboardButton.addEventListener('click', () => {
-        window.location.href = 'agent_dashboard.html'; // Or gestionnaire_dashboard.html
-    });
-
-    async function loadAllCreneaux() {
-        try {
-            const token = sessionStorage.getItem('access_token');
-            if (!token) {
-                outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
-`;
-                setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+            if (loggedInUser.type !== 'pilote') {
+                outputDiv.innerHTML = '<span style="color: #ff0000;">ACCÈS REFUSÉ:</span> Seuls les pilotes peuvent voir leurs créneaux.';
+                creneauxListViewerDiv.innerHTML = '';
                 return;
             }
 
-            const response = await fetch(`${API_BASE_URL}/creneaux/`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            const creneaux = await response.json();
+            await loadMyCreneaux();
+        });
 
-            if (response.ok) {
-                if (creneaux.length === 0) {
-                    creneauxListViewerDiv.innerHTML = '<p>Aucun créneau à afficher.</p>';
+        backToDashboardButton.addEventListener('click', () => {
+            window.location.href = 'pilote_dashboard.html';
+        });
+
+        reserveNewButton.addEventListener('click', () => {
+            window.location.href = 'reserve_creneau.html';
+        });
+
+        async function loadMyCreneaux() {
+            try {
+                const token = sessionStorage.getItem('access_token');
+                if (!token) {
+                    outputDiv.innerHTML += `> <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
+`;
+                    setTimeout(() => { window.location.href = 'login.html'; }, 2000);
                     return;
                 }
-                creneauxListViewerDiv.innerHTML = '<table>' + 
-                    '<thead><tr><th>ID</th><th>Pilote</th><th>Avion</th><th>Infrastructure</th><th>Début Prévu</th><th>Fin Prévue</th><th>État</th></tr></thead>' +
-                    '<tbody>' +
-                    creneaux.map(c => `
-                        <tr>
-                            <td>${c.Id}</td>
-                            <td>${c.pilote_id}</td>
-                            <td>${c.avion_id}</td>
-                            <td>${c.infrastructure_id}</td>
-                            <td>${c.debut_prevu}</td>
-                            <td>${c.fin_prevu}</td>
-                            <td>${c.etat}</td>
-                        </tr>
-                    `).join('') +
-                    '</tbody></table>';
 
-            } else {
-                outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR:</span> Impossible de charger les créneaux : ${creneaux.detail || response.statusText}
+                outputDiv.innerHTML = '> Chargement de vos créneaux...\n';
+
+                const response = await fetch(`${API_BASE_URL}/pilotes/me/creneaux/`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const creneaux = await response.json();
+
+                if (response.ok) {
+                    outputDiv.innerHTML = `> <span style="color: #00ff00;">✅ Créneaux chargés:</span> ${creneaux.length} créneau(x) trouvé(s)\n`;
+
+                    if (creneaux.length === 0) {
+                        creneauxListViewerDiv.innerHTML = '<p style="color: #ffcc00;">Aucun créneau enregistré. Cliquez sur "Réserver un nouveau créneau" pour commencer.</p>';
+                        return;
+                    }
+
+                    // Trier par date (plus récents en premier)
+                    creneaux.sort((a, b) => new Date(b.debut_prevu) - new Date(a.debut_prevu));
+
+                    creneauxListViewerDiv.innerHTML = creneaux.map(c => {
+                        const debut = new Date(c.debut_prevu);
+                        const fin = new Date(c.fin_prevu);
+                        const duree = ((fin - debut) / (1000 * 60)).toFixed(0); // en minutes
+
+                        return `
+                        <div class="creneau-card">
+                            <div class="creneau-header">
+                                ✈️ Créneau #${c.Id} - <span class="etat-${c.etat}">${c.etat}</span>
+                            </div>
+                            <div class="creneau-detail">
+                                📅 <strong>Début:</strong> ${debut.toLocaleString('fr-FR')}
+                            </div>
+                            <div class="creneau-detail">
+                                📅 <strong>Fin:</strong> ${fin.toLocaleString('fr-FR')}
+                            </div>
+                            <div class="creneau-detail">
+                                ⏱️ <strong>Durée:</strong> ${duree} minutes
+                            </div>
+                            <div class="creneau-detail">
+                                🏢 <strong>Infrastructure:</strong> ID ${c.infrastructure_id}
+                            </div>
+                            ${c.avion_id ? `<div class="creneau-detail">
+                                ✈️ <strong>Avion:</strong> ${c.avion_id}
+                            </div>` : ''}
+                            <div class="creneau-detail cout-highlight">
+                                💰 <strong>Coût Total:</strong> ${c.cout_total ? c.cout_total.toFixed(2) + ' €' : 'Non calculé'}
+                            </div>
+                            ${c.cout_total ? '<div class="creneau-detail" style="color: #00ff00; font-size: 0.9em;">✨ Calculé automatiquement par le système</div>' : ''}
+                        </div>
+                    `;
+                    }).join('');
+
+                } else {
+                    outputDiv.innerHTML += `> <span style="color: #ff0000;">ERREUR:</span> Impossible de charger les créneaux : ${creneaux.detail || response.statusText}
+`;
+                }
+            } catch (error) {
+                outputDiv.innerHTML += `> <span style="color: #ff0000;">ERREUR SYSTÈME:</span> Impossible de connecter à l'API pour les créneaux.
 `;
             }
-        } catch (error) {
-            outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR SYSTÈME:</span> Impossible de connecter à l'API pour les créneaux.
-`;
         }
-    }
-</script>
+    </script>
 
 </body>
+
 </html>

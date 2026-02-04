@@ -207,9 +207,14 @@
 
                             const result = await response.json();
 
-                            outputDiv.innerHTML += `&gt; <span style="color: #00ff00;">SUCCÈS:</span> Créneau réservé avec succès! ID: ${result.Id}
-
-            `;
+                            outputDiv.innerHTML += `> <span style="color: #00ff00;">✅ SUCCÈS:</span> Créneau réservé avec succès!
+> ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+> <span style="color: #00ffff;">ID du Créneau:</span> ${result.Id}
+> <span style="color: #ffff00;">💰 Coût Total Calculé:</span> ${result.cout_total ? result.cout_total.toFixed(2) + ' €' : 'N/A'}
+> <span style="color: #00ff00;">État:</span> ${result.etat}
+> ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+> Le coût a été <strong>calculé automatiquement</strong> par le système!
+`;
 
                             creneauForm.reset(); // Clear the form
 
@@ -228,42 +233,62 @@
                                         }
 
                         
+                                        // ⭐ MISE EN ÉVIDENCE DE L'ERREUR 90 MINUTES ⭐
+                                        let errorMessage = '';
+                                        
+                                        if (response.status === 409 && typeof errorBody === 'object' && errorBody.detail) {
+                                            // C'est probablement l'erreur de la règle des 90 minutes!
+                                            errorMessage = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  RÈGLE DES 90 MINUTES NON RESPECTÉE  ⚠️
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-                                        let errorMessage = `Erreur lors de la réservation du créneau. Status: ${response.status}`;
+${errorBody.detail}
 
-                                        if (typeof errorBody === 'object' && errorBody !== null) {
+Cette règle de sécurité garantit un intervalle
+minimum de 90 minutes entre deux mouvements
+sur la même infrastructure.
 
-                                            if (Array.isArray(errorBody.detail)) { // Check if detail is an array
+💡 Veuillez choisir un autre créneau horaire.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+                                        } else {
+                                            // Autre erreur
+                                            errorMessage = `Erreur lors de la réservation du créneau. Status: ${response.status}`;
 
-                                                errorMessage += ":\n" + errorBody.detail.map(err => {
+                                            if (typeof errorBody === 'object' && errorBody !== null) {
 
-                                                    return `${err.loc.join('.')} - ${err.msg}`;
+                                                if (Array.isArray(errorBody.detail)) { // Check if detail is an array
 
-                                                }).join('\n');
+                                                    errorMessage += ":\n" + errorBody.detail.map(err => {
 
-                                            } else if (errorBody.detail) {
+                                                        return `${err.loc.join('.')} - ${err.msg}`;
 
-                                                errorMessage += `: ${errorBody.detail}`;
+                                                    }).join('\n');
 
-                                            } else if (errorBody.message) {
+                                                } else if (errorBody.detail) {
 
-                                                errorMessage += `: ${errorBody.message}`;
+                                                    errorMessage += `: ${errorBody.detail}`;
 
-                                            } else {
+                                                } else if (errorBody.message) {
 
-                                                errorMessage += `: ${JSON.stringify(errorBody, null, 2)}`; // Pretty print for objects
+                                                    errorMessage += `: ${errorBody.message}`;
+
+                                                } else {
+
+                                                    errorMessage += `: ${JSON.stringify(errorBody, null, 2)}`; // Pretty print for objects
+
+                                                }
+
+                                            } else if (typeof errorBody === 'string' && errorBody.length > 0) {
+
+                                                errorMessage += `: ${errorBody}`;
 
                                             }
-
-                                        } else if (typeof errorBody === 'string' && errorBody.length > 0) {
-
-                                            errorMessage += `: ${errorBody}`;
-
                                         }
 
                         
 
-                                        outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR:</span> <pre>${errorMessage}</pre>
+                                        outputDiv.innerHTML += `> <span style="color: #ff0000;">❌ ERREUR:</span> <pre>${errorMessage}</pre>
 
                         `; // Use <pre> for preformatted text, especially with newlines
 
@@ -271,7 +296,7 @@
 
                     } catch (error) {
 
-                        outputDiv.innerHTML += `&gt; <span style="color: #ff0000;">ERREUR SYSTÈME:</span> Impossible de connecter à l'API pour la réservation de créneau. Détails: ${error.message || error}
+                        outputDiv.innerHTML += `> <span style="color: #ff0000;">ERREUR SYSTÈME:</span> Impossible de connecter à l'API pour la réservation de créneau. Détails: ${error.message || error}
 
             `;
 

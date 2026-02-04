@@ -43,11 +43,13 @@ Calcul du coût total basé sur:
 ├── api/
 │   ├── main.py          # API FastAPI avec endpoints
 │   └── models.py        # Modèles Pydantic
-├── business.py          # Logique métier (règle 90 min, calculs)
+├── business.py          # Ensemble des fonctions buisness
 ├── CRUD.py             # Gestionnaire de base de données
 ├── create_db.py        # Création du schéma SQLite
 ├── populate_db.py      # Données de démo
 └── *.html              # Interface utilisateur
+
+
 ```
 
 ## 🚀 Installation et Lancement
@@ -150,11 +152,6 @@ Pour la présentation, le projet a été simplifié tout en conservant les fonct
 - Validation simplifiée sur certains endpoints
 - Documentation inline pour faciliter la compréhension
 
-## 📚 Documentation Complète
-
-- `objectifs.md` - Cahier des charges initial
-- `DATA_DICTIONARY.md` - Dictionnaire de données
-- `PROJET_DOCUMENTATION.md` - Documentation technique détaillée
 
 ## 📖 Documentation API Interactive
 

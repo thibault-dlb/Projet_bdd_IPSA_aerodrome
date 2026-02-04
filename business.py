@@ -151,10 +151,20 @@ def validate_creneau_time_slot(db: DatabaseManager, infrastructure_id: int,
         existing_debut = datetime.fromisoformat(existing_creneau["debut_prevu"])
         existing_fin = datetime.fromisoformat(existing_creneau["fin_prevu"])
         
-        # ⭐ RÈGLE DES 90 MINUTES ⭐
-        # Vérifier qu'il y a au moins 90 minutes entre les créneaux
-        if (debut < existing_fin + timedelta(minutes=90)) and (fin > existing_debut - timedelta(minutes=90)):
-            return False, "Time slot conflicts with an existing one (including 90-minute security interval)"
+        # ⭐ RÈGLE DES 90 MINUTES - LOGIQUE CORRIGÉE ⭐
+        # Un créneau est valide si:
+        # - Il commence au moins 90 minutes APRÈS la fin d'un créneau existant
+        # - OU il se termine au moins 90 minutes AVANT le début d'un créneau existant
+        
+        # Calculer les intervalles de temps en minutes
+        time_gap_after = (debut - existing_fin).total_seconds() / 60  # Minutes après le créneau existant
+        time_gap_before = (existing_debut - fin).total_seconds() / 60  # Minutes avant le créneau existant
+        
+        # Si les deux gaps sont négatifs (ou < 90), il y a conflit
+        if time_gap_after < 90 and time_gap_before < 90:
+            # Déterminer quel gap est le plus proche pour un message d'erreur informatif
+            closest_gap = max(time_gap_after, time_gap_before)
+            return False, f"Time slot conflicts with existing slot (ID {existing_creneau['Id']}). Minimum 90-minute gap required, found {closest_gap:.0f} minutes."
     
     return True, None
 

@@ -1,149 +1,180 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tableau de Bord Gestionnaire - Gestion Aéroport</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div id="terminal">
-    <div id="output"></div>
-    
-    <div id="dashboard-container">
-        <h3 id="dashboard-title"></h3>
-        <div id="dashboard-content">
-            <!-- User Management -->
-            <h4>Gestion des utilisateurs</h4>
-            <div id="user-management"></div>
+    <div id="terminal">
+        <div id="output"></div>
 
-            <!-- Infrastructure Management -->
-            <h4>Gestion des infrastructures</h4>
-            <div id="infra-management"></div>
+        <div id="dashboard-container">
+            <h3 id="dashboard-title"></h3>
+            <div id="dashboard-content">
+                <!-- User Management -->
+                <h4>Gestion des utilisateurs</h4>
+                <div id="user-management"></div>
 
-            <!-- Financials -->
-            <h4>Finances</h4>
-            <div id="financials"></div>
+                <!-- Infrastructure Management -->
+                <h4>Gestion des infrastructures</h4>
+                <div id="infra-management"></div>
+
+                <!-- Financials -->
+                <h4>Finances</h4>
+                <div id="financials"></div>
+            </div>
+            <br>
+            <h4>Actions administratives</h4>
+            <button id="createGestionnaireButton">Créer un Gestionnaire</button>
+            <button id="createAgentButton">Créer un Agent</button>
+            <button id="createPiloteButton">Créer un Pilote</button>
+            <br><br>
+            <button id="manageCreneauxButton">Gérer les Créneaux</button>
+            <button id="logoutButton">Logout</button>
         </div>
-        <br>
-        <h4>Actions administratives</h4>
-        <button id="createGestionnaireButton">Créer un Gestionnaire</button>
-        <button id="createAgentButton">Créer un Agent</button>
-        <button id="createPiloteButton">Créer un Pilote</button>
-        <br><br>
-        <button id="manageCreneauxButton">Gérer les Créneaux</button>
-        <button id="logoutButton">Logout</button>
     </div>
-</div>
 
-<script>
-    const API_BASE_URL = 'http://127.0.0.1:8000';
-    const outputDiv = document.getElementById('output');
-    const dashboardTitle = document.getElementById('dashboard-title');
-    const userManagementDiv = document.getElementById('user-management');
-    const infraManagementDiv = document.getElementById('infra-management');
-    const financialsDiv = document.getElementById('financials');
-    const logoutButton = document.getElementById('logoutButton');
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:8000';
+        const outputDiv = document.getElementById('output');
+        const dashboardTitle = document.getElementById('dashboard-title');
+        const userManagementDiv = document.getElementById('user-management');
+        const infraManagementDiv = document.getElementById('infra-management');
+        const financialsDiv = document.getElementById('financials');
+        const logoutButton = document.getElementById('logoutButton');
 
-    let loggedInUser = null;
+        let loggedInUser = null;
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const userJson = sessionStorage.getItem('loggedInUser');
-        if (!userJson) {
-            window.location.href = 'login.html';
-            return;
-        }
-        loggedInUser = JSON.parse(userJson);
-
-        if (loggedInUser.type !== 'gestionnaire') {
-            window.location.href = 'login.html';
-            return;
-        }
-
-        dashboardTitle.innerText = `Tableau de Bord Gestionnaire: ${loggedInUser.name}`;
-        
-        loadUsers();
-        loadInfrastructures();
-        loadFinancials();
-
-        logoutButton.addEventListener('click', () => {
-            sessionStorage.removeItem('loggedInUser');
-            window.location.href = 'login.html';
-        });
-
-        // Manage Creneaux Button
-        const manageCreneauxButton = document.getElementById('manageCreneauxButton');
-        manageCreneauxButton.addEventListener('click', () => {
-            window.location.href = 'manage_creneaux.html';
-        });
-
-        // Create User Buttons
-        document.getElementById('createGestionnaireButton').addEventListener('click', () => {
-            window.location.href = 'create_user.html?type=gestionnaire';
-        });
-        document.getElementById('createAgentButton').addEventListener('click', () => {
-            window.location.href = 'create_user.html?type=agent';
-        });
-        document.getElementById('createPiloteButton').addEventListener('click', () => {
-            window.location.href = 'create_user.html?type=pilote';
-        });
-    });
-
-    async function fetchData(endpoint) {
-        const token = sessionStorage.getItem('access_token');
-        if (!token) {
-            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
-`;
-            setTimeout(() => { window.location.href = 'login.html'; }, 2000);
-            return null;
-        }
-
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
+        document.addEventListener('DOMContentLoaded', () => {
+            const userJson = sessionStorage.getItem('loggedInUser');
+            if (!userJson) {
+                window.location.href = 'login.html';
+                return;
             }
+            loggedInUser = JSON.parse(userJson);
+
+            if (loggedInUser.type !== 'gestionnaire') {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            dashboardTitle.innerText = `Tableau de Bord Gestionnaire: ${loggedInUser.name}`;
+
+            loadUsers();
+            loadInfrastructures();
+            loadFinancials();
+
+            logoutButton.addEventListener('click', () => {
+                sessionStorage.removeItem('loggedInUser');
+                window.location.href = 'login.html';
+            });
+
+            // Manage Creneaux Button
+            const manageCreneauxButton = document.getElementById('manageCreneauxButton');
+            manageCreneauxButton.addEventListener('click', () => {
+                window.location.href = 'manage_creneaux.html';
+            });
+
+            // Create User Buttons
+            document.getElementById('createGestionnaireButton').addEventListener('click', () => {
+                window.location.href = 'create_user.html?type=gestionnaire';
+            });
+            document.getElementById('createAgentButton').addEventListener('click', () => {
+                window.location.href = 'create_user.html?type=agent';
+            });
+            document.getElementById('createPiloteButton').addEventListener('click', () => {
+                window.location.href = 'create_user.html?type=pilote';
+            });
         });
-        if (!response.ok) {
-            const error = await response.json();
-            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERROR:</span> ${error.detail || 'Failed to fetch data'}
+
+        async function fetchData(endpoint) {
+            const token = sessionStorage.getItem('access_token');
+            if (!token) {
+                outputDiv.innerHTML += `> <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
+`;
+                setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+                return null;
+            }
+
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                outputDiv.innerHTML += `> <span style="color: #ff0000;">ERROR:</span> ${error.detail || 'Failed to fetch data'}
 
 `;
-            return null;
+                return null;
+            }
+            return response.json();
         }
-        return response.json();
-    }
-    
-    async function loadUsers() {
-        const gestionnaires = await fetchData('/gestionnaires/');
-        const agents = await fetchData('/agents/');
-        const pilotes = await fetchData('/pilotes/');
-        
-        let html = '<h5>Gestionnaires</h5><ul>' + gestionnaires.map(u => `<li>${u.username}</li>`).join('') + '</ul>';
-        html += '<h5>Agents</h5><ul>' + agents.map(u => `<li>${u.username}</li>`).join('') + '</ul>';
-        html += '<h5>Pilotes</h5><ul>' + pilotes.map(u => `<li>${u.username}</li>`).join('') + '</ul>';
-        userManagementDiv.innerHTML = html;
-    }
-    
-    async function loadInfrastructures() {
-        const infrastructures = await fetchData('/infrastructures/');
-        if (infrastructures) {
-            infraManagementDiv.innerHTML = '<ul>' + infrastructures.map(i => `<li>${i.nom} (${i.type})</li>`).join('') + '</ul>';
-        }
-    }
 
-    async function loadFinancials() {
-        const creneaux = await fetchData('/creneaux/');
-        let totalRevenue = 0;
-        if(creneaux) {
-            creneaux.forEach(c => {
-                if(c.cout_total) totalRevenue += c.cout_total;
-            });
-        }
-        financialsDiv.innerHTML = `<p>Revenu total des créneaux: ${totalRevenue.toFixed(2)} €</p>`;
-    }
+        async function loadUsers() {
+            const gestionnaires = await fetchData('/gestionnaires/');
+            const agents = await fetchData('/agents/');
+            const pilotes = await fetchData('/pilotes/');
 
-</script>
+            let html = '<h5>Gestionnaires</h5><ul>' + gestionnaires.map(u => `<li>${u.username}</li>`).join('') + '</ul>';
+            html += '<h5>Agents</h5><ul>' + agents.map(u => `<li>${u.username}</li>`).join('') + '</ul>';
+            html += '<h5>Pilotes</h5><ul>' + pilotes.map(u => `<li>${u.username}</li>`).join('') + '</ul>';
+            userManagementDiv.innerHTML = html;
+        }
+
+        async function loadInfrastructures() {
+            const infrastructures = await fetchData('/infrastructures/');
+            if (infrastructures) {
+                infraManagementDiv.innerHTML = '<ul>' + infrastructures.map(i => `<li>${i.nom} (${i.type})</li>`).join('') + '</ul>';
+            }
+        }
+
+        async function loadFinancials() {
+            const creneaux = await fetchData('/creneaux/');
+            if (creneaux) {
+                let totalRevenue = 0;
+                let stats = {
+                    'Demandé': 0,
+                    'Confirmé': 0,
+                    'Autorisé': 0,
+                    'Achevé': 0,
+                    'Annulé': 0
+                };
+
+                creneaux.forEach(c => {
+                    if (c.cout_total) totalRevenue += c.cout_total;
+                    if (c.etat && stats.hasOwnProperty(c.etat)) {
+                        stats[c.etat]++;
+                    }
+                });
+
+                financialsDiv.innerHTML = `
+                <div style="border: 1px solid #00ff00; padding: 15px; margin-bottom: 20px;">
+                    <h5 style="color: #ffff00;">💰 Statistiques Financières</h5>
+                    <p style="font-size: 1.3em; color: #00ff00;"><strong>Revenu Total:</strong> ${totalRevenue.toFixed(2)} €</p>
+                    <p style="color: #00ffff;"><strong>Nombre de Créneaux:</strong> ${creneaux.length}</p>
+                </div>
+                <div style="border: 1px solid #00ffff; padding: 15px;">
+                    <h5 style="color: #00ffff;">📊 États des Créneaux</h5>
+                    <p>🟡 Demandés: ${stats['Demandé']}</p>
+                    <p>🔵 Confirmés: ${stats['Confirmé']}</p>
+                    <p>🟢 Autorisés: ${stats['Autorisé']}</p>
+                    <p>⚪ Achevés: ${stats['Achevé']}</p>
+                    <p>🔴 Annulés: ${stats['Annulé']}</p>
+                </div>
+            `;
+            } else {
+                financialsDiv.innerHTML = `<p style="color: #ff0000;">Impossible de charger les données financières.</p>`;
+            }
+        }
+
+    </script>
 
 </body>
+
 </html>

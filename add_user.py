@@ -8,7 +8,7 @@ from getpass import getpass
 sys.path.append(str(Path(__file__).parent.parent))
 
 from CRUD import DatabaseManager
-from api.main import get_password_hash # Import the hashing function
+from business import hash_password  # Import the hashing function
 
 DATABASE_URL = "Code_SQlite.db"
 
@@ -32,7 +32,7 @@ def add_user():
         license = input("Numéro de licence : ")
         medical = input("Certification médicale : ")
         password = getpass("Mot de passe : ")
-        password_hash = get_password_hash(password)
+        password_hash = hash_password(password)
 
         user_data = {
             "nom": nom,
@@ -53,7 +53,7 @@ def add_user():
         mail = input("Email : ")
         username = input("Nom d'utilisateur : ")
         password = getpass("Mot de passe : ")
-        password_hash = get_password_hash(password)
+        password_hash = hash_password(password)
 
         user_data = {
             "nom": nom,
@@ -72,7 +72,7 @@ def add_user():
         mail = input("Email : ")
         username = input("Nom d'utilisateur : ")
         password = getpass("Mot de passe : ")
-        password_hash = get_password_hash(password)
+        password_hash = hash_password(password)
 
         user_data = {
             "nom": nom,

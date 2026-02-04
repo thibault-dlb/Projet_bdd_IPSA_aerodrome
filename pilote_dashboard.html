@@ -1,165 +1,167 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tableau de Bord Pilote - Gestion Aéroport</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div id="terminal">
-    <div id="output"></div>
-    
-    <div id="dashboard-container">
-        <h3 id="dashboard-title"></h3>
-        <div id="dashboard-content">
-            <!-- Pilot's Info -->
-            <h4>Mes Informations</h4>
-            <div id="pilote-info"></div>
+    <div id="terminal">
+        <div id="output"></div>
 
-            <!-- Aircrafts -->
-            <h4>Mes Aéronefs</h4>
-            <div id="avions-list"></div>
-            <form id="add-avion-form">
-                <h5>Ajouter un aéronef</h5>
-                <input type="text" name="Immatriculation" placeholder="Immatriculation" required>
-                <input type="text" name="marque" placeholder="Marque" required>
-                <input type="text" name="modele" placeholder="Modèle" required>
-                <input type="text" name="dimension" placeholder="Dimension" required>
-                <input type="text" name="poids" placeholder="Poids" required>
-                <select name="carburant_id"></select>
-                <button type="submit">Ajouter</button>
-            </form>
+        <div id="dashboard-container">
+            <h3 id="dashboard-title"></h3>
+            <div id="dashboard-content">
+                <!-- Pilot's Info -->
+                <h4>Mes Informations</h4>
+                <div id="pilote-info"></div>
 
-            <!-- Creneaux -->
-            <h4>Mes Créneaux</h4>
-            <div id="creneaux-list"></div>
+                <!-- Aircrafts -->
+                <h4>Mes Aéronefs</h4>
+                <div id="avions-list"></div>
+                <form id="add-avion-form">
+                    <h5>Ajouter un aéronef</h5>
+                    <input type="text" name="Immatriculation" placeholder="Immatriculation" required>
+                    <input type="text" name="marque" placeholder="Marque" required>
+                    <input type="text" name="modele" placeholder="Modèle" required>
+                    <input type="text" name="dimension" placeholder="Dimension" required>
+                    <input type="text" name="poids" placeholder="Poids" required>
+                    <select name="carburant_id"></select>
+                    <button type="submit">Ajouter</button>
+                </form>
+
+                <!-- Creneaux -->
+                <h4>Mes Créneaux</h4>
+                <div id="creneaux-list"></div>
+            </div>
+            <br>
+            <button id="reserveCreneauButton">Réserver un nouveau créneau</button>
+            <button id="viewCreneauxButton">Voir tous mes créneaux</button>
+            <button id="messageAgentButton">Message Agent</button>
+            <button id="logoutButton">Logout</button>
         </div>
-        <br>
-        <button id="reserveCreneauButton">Réserver un nouveau créneau</button>
-        <button id="viewCreneauxButton">Voir tous mes créneaux</button>
-        <button id="messageAgentButton">Message Agent</button>
-        <button id="logoutButton">Logout</button>
     </div>
-</div>
 
-<script>
-    const API_BASE_URL = 'http://127.0.0.1:8000';
-    const outputDiv = document.getElementById('output');
-    const dashboardTitle = document.getElementById('dashboard-title');
-    const piloteInfoDiv = document.getElementById('pilote-info');
-    const avionsListDiv = document.getElementById('avions-list');
-    const creneauxListDiv = document.getElementById('creneaux-list');
-    const addAvionForm = document.getElementById('add-avion-form');
-    const logoutButton = document.getElementById('logoutButton');
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:8000';
+        const outputDiv = document.getElementById('output');
+        const dashboardTitle = document.getElementById('dashboard-title');
+        const piloteInfoDiv = document.getElementById('pilote-info');
+        const avionsListDiv = document.getElementById('avions-list');
+        const creneauxListDiv = document.getElementById('creneaux-list');
+        const addAvionForm = document.getElementById('add-avion-form');
+        const logoutButton = document.getElementById('logoutButton');
 
-    let loggedInUser = null;
+        let loggedInUser = null;
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const userJson = sessionStorage.getItem('loggedInUser');
-        if (!userJson) {
-            window.location.href = 'login.html';
-            return;
-        }
-        loggedInUser = JSON.parse(userJson);
-
-        if (loggedInUser.type !== 'pilote') {
-            window.location.href = 'login.html'; // Or a generic dashboard
-            return;
-        }
-
-        dashboardTitle.innerText = `Tableau de Bord Pilote: ${loggedInUser.name}`;
-        
-        loadPiloteInfo();
-        loadAvions();
-        loadCreneaux();
-        populateForms();
-
-        logoutButton.addEventListener('click', () => {
-            sessionStorage.removeItem('loggedInUser');
-            window.location.href = 'login.html';
-        });
-
-        addAvionForm.addEventListener('submit', handleAddAvion);
-
-        // Reserve Creneau Button
-        const reserveCreneauButton = document.getElementById('reserveCreneauButton');
-        reserveCreneauButton.addEventListener('click', () => {
-            window.location.href = 'reserve_creneau.html';
-        });
-
-        // View Creneaux Button
-        const viewCreneauxButton = document.getElementById('viewCreneauxButton');
-        viewCreneauxButton.addEventListener('click', () => {
-            document.getElementById('creneaux-list').scrollIntoView({ behavior: 'smooth' });
-        });
-
-        // Message Agent Button
-        const messageAgentButton = document.getElementById('messageAgentButton');
-        messageAgentButton.addEventListener('click', () => {
-            // For simplicity, assume there's always an agent with ID 1 to message
-            const defaultAgentId = 1; 
-            window.location.href = `messagerie.html?pilote_id=${loggedInUser.id}&agent_id=${defaultAgentId}`;
-        });
-    });
-
-    async function fetchData(endpoint) {
-        const token = sessionStorage.getItem('access_token');
-        if (!token) {
-            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
-`;
-            setTimeout(() => { window.location.href = 'login.html'; }, 2000);
-            return null;
-        }
-
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
+        document.addEventListener('DOMContentLoaded', () => {
+            const userJson = sessionStorage.getItem('loggedInUser');
+            if (!userJson) {
+                window.location.href = 'login.html';
+                return;
             }
+            loggedInUser = JSON.parse(userJson);
+
+            if (loggedInUser.type !== 'pilote') {
+                window.location.href = 'login.html'; // Or a generic dashboard
+                return;
+            }
+
+            dashboardTitle.innerText = `Tableau de Bord Pilote: ${loggedInUser.name}`;
+
+            loadPiloteInfo();
+            loadAvions();
+            loadCreneaux();
+            populateForms();
+
+            logoutButton.addEventListener('click', () => {
+                sessionStorage.removeItem('loggedInUser');
+                window.location.href = 'login.html';
+            });
+
+            addAvionForm.addEventListener('submit', handleAddAvion);
+
+            // Reserve Creneau Button
+            const reserveCreneauButton = document.getElementById('reserveCreneauButton');
+            reserveCreneauButton.addEventListener('click', () => {
+                window.location.href = 'reserve_creneau.html';
+            });
+
+            // View Creneaux Button
+            const viewCreneauxButton = document.getElementById('viewCreneauxButton');
+            viewCreneauxButton.addEventListener('click', () => {
+                window.location.href = 'view_creneaux.html';
+            });
+
+            // Message Agent Button
+            const messageAgentButton = document.getElementById('messageAgentButton');
+            messageAgentButton.addEventListener('click', () => {
+                // For simplicity, assume there's always an agent with ID 1 to message
+                const defaultAgentId = 1;
+                window.location.href = `messagerie.html?pilote_id=${loggedInUser.id}&agent_id=${defaultAgentId}`;
+            });
         });
-        if (!response.ok) {
-            const error = await response.json();
-            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERROR:</span> ${error.detail || 'Failed to fetch data'}
+
+        async function fetchData(endpoint) {
+            const token = sessionStorage.getItem('access_token');
+            if (!token) {
+                outputDiv.innerHTML += `> <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
+`;
+                setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+                return null;
+            }
+
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                outputDiv.innerHTML += `> <span style="color: #ff0000;">ERROR:</span> ${error.detail || 'Failed to fetch data'}
 
 `;
-            return null;
+                return null;
+            }
+            return response.json();
         }
-        return response.json();
-    }
-    
-    async function postData(endpoint, data) {
-        const token = sessionStorage.getItem('access_token');
-        if (!token) {
-            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
+
+        async function postData(endpoint, data) {
+            const token = sessionStorage.getItem('access_token');
+            if (!token) {
+                outputDiv.innerHTML += `> <span style="color: #ff0000;">ERREUR:</span> Token d'accès manquant. Redirection vers la connexion.
 `;
-            setTimeout(() => { window.location.href = 'login.html'; }, 2000);
-            return null;
-        }
+                setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+                return null;
+            }
 
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(data)
-        });
-        if (!response.ok) {
-            const error = await response.json();
-            outputDiv.innerHTML += `> <span style="color: #ff0000;">ERROR:</span> ${error.detail || 'Failed to post data'}
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                outputDiv.innerHTML += `> <span style="color: #ff0000;">ERROR:</span> ${error.detail || 'Failed to post data'}
 
 `;
-            return null;
+                return null;
+            }
+            return response.json();
         }
-        return response.json();
-    }
 
 
-    async function loadPiloteInfo() {
-        const pilote = await fetchData(`/pilotes/${loggedInUser.id}`);
-        if (pilote) {
-            piloteInfoDiv.innerHTML = `
+        async function loadPiloteInfo() {
+            const pilote = await fetchData(`/pilotes/${loggedInUser.id}`);
+            if (pilote) {
+                piloteInfoDiv.innerHTML = `
                 <p><strong>Nom:</strong> ${pilote.nom}</p>
                 <p><strong>Prénom:</strong> ${pilote.prenom}</p>
                 <p><strong>Email:</strong> ${pilote.mail}</p>
@@ -167,56 +169,57 @@
                 <p><strong>Licence:</strong> ${pilote.license}</p>
                 <p><strong>Médical:</strong> ${pilote.medical}</p>
             `;
-        }
-    }
-
-    async function loadAvions() {
-        const avions = await fetchData('/pilotes/me/avions/');
-        if (avions) {
-            if (avions.length === 0) {
-                avionsListDiv.innerHTML = '<p>Aucun aéronef enregistré.</p>';
-            } else {
-                avionsListDiv.innerHTML = '<ul>' + avions.map(a => `<li>${a.Immatriculation} (${a.marque} ${a.modele})</li>`).join('') + '</ul>';
             }
         }
-    }
 
-    async function loadCreneaux() {
-        const creneaux = await fetchData('/pilotes/me/creneaux/');
-        if (creneaux) {
-            if (creneaux.length === 0) {
-                creneauxListDiv.innerHTML = '<p>Aucun créneau enregistré.</p>';
-            } else {
-                creneauxListDiv.innerHTML = '<ul>' + creneaux.map(c => `<li>${c.debut_prevu} - ${c.fin_prevu} (${c.etat})</li>`).join('') + '</ul>';
+        async function loadAvions() {
+            const avions = await fetchData('/pilotes/me/avions/');
+            if (avions) {
+                if (avions.length === 0) {
+                    avionsListDiv.innerHTML = '<p>Aucun aéronef enregistré.</p>';
+                } else {
+                    avionsListDiv.innerHTML = '<ul>' + avions.map(a => `<li>${a.Immatriculation} (${a.marque} ${a.modele})</li>`).join('') + '</ul>';
+                }
             }
         }
-    }
-    
-    async function populateForms() {
-        const carburants = await fetchData('/carburants/');
-        if (carburants) {
-            const carburantSelect = addAvionForm.querySelector('select[name="carburant_id"]');
-            carburantSelect.innerHTML = carburants.map(c => `<option value="${c.Nom}">${c.Nom}</option>`).join('');
+
+        async function loadCreneaux() {
+            const creneaux = await fetchData('/pilotes/me/creneaux/');
+            if (creneaux) {
+                if (creneaux.length === 0) {
+                    creneauxListDiv.innerHTML = '<p>Aucun créneau enregistré.</p>';
+                } else {
+                    creneauxListDiv.innerHTML = '<ul>' + creneaux.map(c => `<li>${c.debut_prevu} - ${c.fin_prevu} (${c.etat})</li>`).join('') + '</ul>';
+                }
+            }
         }
-    }
-    
-    async function handleAddAvion(event) {
-        event.preventDefault();
-        const formData = new FormData(addAvionForm);
-        const data = Object.fromEntries(formData.entries());
-        const newAvion = await postData('/avions/', data);
-        if (newAvion) {
-            outputDiv.innerHTML += `> <span style="color: #00ff00;">SUCCESS:</span> Aéronef ${newAvion.Immatriculation} ajouté.
+
+        async function populateForms() {
+            const carburants = await fetchData('/carburants/');
+            if (carburants) {
+                const carburantSelect = addAvionForm.querySelector('select[name="carburant_id"]');
+                carburantSelect.innerHTML = carburants.map(c => `<option value="${c.Nom}">${c.Nom}</option>`).join('');
+            }
+        }
+
+        async function handleAddAvion(event) {
+            event.preventDefault();
+            const formData = new FormData(addAvionForm);
+            const data = Object.fromEntries(formData.entries());
+            const newAvion = await postData('/avions/', data);
+            if (newAvion) {
+                outputDiv.innerHTML += `> <span style="color: #00ff00;">SUCCESS:</span> Aéronef ${newAvion.Immatriculation} ajouté.
 
 `;
-            addAvionForm.reset();
-            loadAvions();
+                addAvionForm.reset();
+                loadAvions();
+            }
         }
-    }
-    
 
 
-</script>
+
+    </script>
 
 </body>
+
 </html>
