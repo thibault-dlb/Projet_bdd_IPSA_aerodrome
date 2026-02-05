@@ -71,20 +71,15 @@ def populate_database(db_path):
         ]
         cursor.executemany("INSERT OR IGNORE INTO Avitaillement (Id, date, heure, quantite_en_l, cout, avion_id) VALUES (?, ?, ?, ?, ?, ?)", avitaillements)
 
-        # --- Table: Facture ---
-        factures = [
-            (1, 'FR7630001007941234567890185', '2026-01-15', 1),
-            (2, 'FR7630001007941234567890186', '2026-01-16', 2)
-        ]
-        cursor.executemany("INSERT OR IGNORE INTO Facture (Id, rib, date_d_emission, agent_id) VALUES (?, ?, ?, ?)", factures)
+
 
         # --- Table: Creneaux ---
         creneaux = [
-            (1, '2026-01-10 14:00', '2026-01-10 15:00', '2026-01-10 14:05', '2026-01-10 14:55', 'Achevé', 343.42 + 50, 1, 1, 2, 1),
-            (2, '2026-01-11 08:30', '2026-01-11 10:00', '2026-01-11 08:45', '2026-01-11 09:50', 'Achevé', 682.50 + 150, 2, 1, 1, 2),
-            (3, '2026-01-20 10:00', '2026-01-20 12:00', None, None, 'Demandé', None, None, 2, 3, None)
+            (1, '2026-01-10 14:00', '2026-01-10 15:00', '2026-01-10 14:05', '2026-01-10 14:55', 'Achevé', 343.42 + 50, 1, 1, 2),
+            (2, '2026-01-11 08:30', '2026-01-11 10:00', '2026-01-11 08:45', '2026-01-11 09:50', 'Achevé', 682.50 + 150, 2, 1, 1),
+            (3, '2026-01-20 10:00', '2026-01-20 12:00', None, None, 'Demandé', None, None, 2, 3)
         ]
-        cursor.executemany("INSERT OR IGNORE INTO Creneaux (Id, debut_prevu, fin_prevu, debut_reel, fin_reel, etat, cout_total, avitaillement_id, pilote_id, infrastructure_id, facture_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", creneaux)
+        cursor.executemany("INSERT OR IGNORE INTO Creneaux (Id, debut_prevu, fin_prevu, debut_reel, fin_reel, etat, cout_total, avitaillement_id, pilote_id, infrastructure_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", creneaux)
         
         # --- Table: Messagerie ---
         messages = [

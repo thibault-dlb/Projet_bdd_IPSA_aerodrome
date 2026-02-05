@@ -105,16 +105,7 @@ def create_database_schema(db_path: str):
             );
         """)
 
-        # Table Facture
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS Facture (
-                Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                rib TEXT NOT NULL,
-                date_d_emission TEXT NOT NULL,
-                agent_id INTEGER,
-                FOREIGN KEY (agent_id) REFERENCES Agent_d_exploitation(Id) ON DELETE SET NULL
-            );
-        """)
+
 
         # Table Creneaux
         cursor.execute("""
@@ -130,12 +121,10 @@ def create_database_schema(db_path: str):
                 avitaillement_id INTEGER,
                 pilote_id INTEGER,
                 infrastructure_id INTEGER,
-                facture_id INTEGER,
                 FOREIGN KEY (avion_id) REFERENCES Avion(Immatriculation) ON DELETE SET NULL,
                 FOREIGN KEY (avitaillement_id) REFERENCES Avitaillement(Id) ON DELETE SET NULL,
                 FOREIGN KEY (pilote_id) REFERENCES Pilote(Id) ON DELETE CASCADE,
-                FOREIGN KEY (infrastructure_id) REFERENCES Infrastructure(Id) ON DELETE SET NULL,
-                FOREIGN KEY (facture_id) REFERENCES Facture(Id) ON DELETE SET NULL
+                FOREIGN KEY (infrastructure_id) REFERENCES Infrastructure(Id) ON DELETE SET NULL
             );
         """)
 

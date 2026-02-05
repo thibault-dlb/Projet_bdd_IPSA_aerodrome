@@ -79,7 +79,6 @@ class CreneauBase(BaseModel):
     avitaillement_id: Optional[int] = None
     pilote_id: Optional[int] = None
     infrastructure_id: Optional[int] = None
-    facture_id: Optional[int] = None
 
 class CreneauCreate(CreneauBase):
     pass
@@ -137,19 +136,7 @@ class Avitaillement(AvitaillementBase):
     class Config:
         from_attributes = True
 
-# Facture
-class FactureBase(BaseModel):
-    rib: str
-    date_d_emission: str
-    agent_id: Optional[int] = None
 
-class FactureCreate(FactureBase):
-    pass
-
-class Facture(FactureBase):
-    Id: int
-    class Config:
-        from_attributes = True
 
 # Messagerie
 class MessagerieBase(BaseModel):

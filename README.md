@@ -4,7 +4,7 @@
 
 ## 📋 Vue d'ensemble
 
-Application web permettant la gestion des mouvements aériens, des services au sol et de la facturation pour un aérodrome régional privé.
+Application web permettant la gestion des mouvements aériens et des services au sol pour un aérodrome régional privé.
 
 ### Architecture
 - **Backend**: FastAPI (Python 3)
@@ -17,7 +17,7 @@ Application web permettant la gestion des mouvements aériens, des services au s
 ### 1. Authentification Multi-Rôles
 - **3 types d'utilisateurs** avec droits différents:
   - 🔧 **Gestionnaire** (niveau 0) - Accès total, gestion infrastructure
-  - 👔 **Agent d'exploitation** (niveau 1) - Validation créneaux, facturation
+  - 👔 **Agent d'exploitation** (niveau 1) - Validation créneaux, gestion services
   - 👨‍✈️ **Pilote** (niveau 2) - Gestion avions, demande de créneaux
 
 ### 2. Règle Métier des 90 Minutes ⏱️
@@ -25,8 +25,8 @@ Validation automatique garantissant **90 minutes minimum** entre deux mouvements
 
 **Implémentation**: `business.py` → `validate_creneau_time_slot()`
 
-### 3. Calcul Automatique de Facturation 💰
-Calcul du coût total basé sur:
+### 3. Calcul Automatique des Coûts 💰
+Calcul du coût total d'un créneau basé sur:
 - Location infrastructure (tarif dégressif: jour/semaine/mois)
 - Avitaillement en carburant
 
@@ -93,9 +93,9 @@ Puis ouvrir `login.html` dans un navigateur (ou avec Live Server).
 - **Pilote**, **Agent_d_exploitation**, **Gestionnaire** - Utilisateurs
 - **Avion** - Aéronefs liés aux pilotes
 - **Infrastructure** - Hangars, parkings (avec capacité)
-- **Creneaux** - Table pivot : mouvement + infrastructure + facturation
+- **Creneaux** - Table pivot : mouvement + infrastructure + coût
 - **Carburant** - AVGAS 100LL, JET A-1
-- **Facture**, **Avitaillement**, **Messagerie**
+- **Avitaillement**, **Messagerie**
 
 ## 🔍 Points Clés pour la Présentation
 
@@ -145,7 +145,7 @@ Pour la présentation, le projet a été simplifié tout en conservant les fonct
 - Authentification bcrypt + JWT
 - Séparation business.py / main.py
 - RBAC à 3 niveaux
-- Calcul automatique de facturation
+- Calcul automatique des coûts
 
 ✨ **Simplifié:**
 - Modèles Pydantic (2 au lieu de 4 par entité)

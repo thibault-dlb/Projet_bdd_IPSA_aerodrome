@@ -51,7 +51,7 @@ class DatabaseManager:
         columns = ', '.join(data.keys())
         placeholders = ', '.join(['?'] * len(data))
         sql = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
-        
+
         with self._create_connection() as conn:
             try:
                 cursor = conn.cursor()
@@ -80,15 +80,15 @@ class DatabaseManager:
             List[Dict[str, Any]]: Une liste de dictionnaires représentant les lignes trouvées.
         """
         cols = ', '.join(columns) if columns else '*'
-        sql = f"SELECT {cols} FROM {table}"
+        sql = f"SELECT {cols} FROM {table}"     #créé la requete sql de base
         
         if join:
-            sql += f" {join}"
+            sql += f" {join}"   #ajoute la clause join si elle est présente
 
         values = []
         if filters:
             conditions = " AND ".join([f"{key} = ?" for key in filters.keys()])
-            sql += f" WHERE {conditions}"
+            sql += f" WHERE {conditions}"   #ajoute la clause where si des filtres sont présents
             values = list(filters.values())
 
         with self._create_connection() as conn:
@@ -116,9 +116,9 @@ class DatabaseManager:
         """
         set_placeholders = ', '.join([f"{key} = ?" for key in data.keys()])
         where_placeholders = " AND ".join([f"{key} = ?" for key in filters.keys()])
-        sql = f"UPDATE {table} SET {set_placeholders} WHERE {where_placeholders}"
+        sql = f"UPDATE {table} SET {set_placeholders} WHERE {where_placeholders}"   #créé la requete sql de base
         
-        values = list(data.values()) + list(filters.values())
+        values = list(data.values()) + list(filters.values())  #ajoute les valeurs des filtres à la requete sql
         
         with self._create_connection() as conn:
             try:
@@ -143,7 +143,7 @@ class DatabaseManager:
             int: Le nombre de lignes supprimées.
         """
         where_placeholders = " AND ".join([f"{key} = ?" for key in filters.keys()])
-        sql = f"DELETE FROM {table} WHERE {where_placeholders}"
+        sql = f"DELETE FROM {table} WHERE {where_placeholders}"   #créé la requete sql de base
         
         with self._create_connection() as conn:
             try:
@@ -220,13 +220,11 @@ class DatabaseManager:
                 c.Id as creneau_id, c.etat, c.debut_prevu, c.fin_prevu,
                 p.nom as pilote_nom, p.prenom as pilote_prenom,
                 a.Immatriculation as avion_immat, a.modele as avion_modele,
-                i.nom as infra_nom, i.type as infra_type,
-                f.Id as facture_id, f.date_d_emission
+                i.nom as infra_nom, i.type as infra_type
             FROM Creneaux c
             LEFT JOIN Pilote p ON c.pilote_id = p.Id
             LEFT JOIN Avion a ON p.Id = a.pilote_id
             LEFT JOIN Infrastructure i ON c.infrastructure_id = i.Id
-            LEFT JOIN Facture f ON c.facture_id = f.Id
             WHERE c.Id = ?
         """
         with self._create_connection() as conn:
@@ -238,10 +236,3 @@ class DatabaseManager:
     def update_creneau_status(self, creneau_id: int, new_status: str) -> int:
         """Met à jour le statut d'un créneau (ex: 'Planifié' -> 'Terminé')."""
         return self.update('Creneaux', data={'etat': new_status}, filters={'Id': creneau_id})
-
-    def get_invoices_for_pilote(self, pilote_id: int) -> List[Dict[str, Any]]:
-        """Récupère toutes les factures d'un pilote via les créneaux."""
-        join_clause = """
-        JOIN Creneaux ON Facture.Id = Creneaux.facture_id
-        """
-        return self.select('Facture', filters={'Creneaux.pilote_id': pilote_id}, join=join_clause)

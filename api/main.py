@@ -30,7 +30,6 @@ from business import (
     get_user_creneaux,
     check_user_owns_avion,
     check_user_owns_creneau,
-    check_user_access_to_facture,
     check_user_access_to_message
 )
 from api.models import (
@@ -41,7 +40,6 @@ from api.models import (
     Creneau, CreneauCreate,
     Gestionnaire, GestionnaireCreate,
     AgentExploitation, AgentExploitationCreate,
-    Facture, FactureCreate,
     Messagerie, MessagerieCreate
 )
 
@@ -619,60 +617,7 @@ async def delete_agent(agent_id: int):
         raise HTTPException(status_code=404, detail="Agent d'exploitation not found")
     return
 
-# -----------------------------------------------------------
-# Facture Endpoints
-# -----------------------------------------------------------
 
-@app.get("/factures/", response_model=List[Facture], dependencies=[Depends(is_agent)])
-async def get_all_factures():
-    db = DatabaseManager(DATABASE_URL)
-    factures = db.select("Facture")
-    return factures
-
-@app.get("/factures/{facture_id}", response_model=Facture)
-async def get_facture(facture_id: int, current_user: Annotated[dict, Depends(get_current_active_user)]):
-    db = DatabaseManager(DATABASE_URL)
-    facture = db.select("Facture", filters={"Id": facture_id})
-    if not facture:
-        raise HTTPException(status_code=404, detail="Facture not found")
-    
-    if current_user["type"] not in ["gestionnaire", "agent"]:
-        if not check_user_access_to_facture(db, current_user["id"], facture_id):
-            raise HTTPException(status_code=403, detail="Not authorized to view this facture")
-
-    return facture[0]
-
-@app.post("/factures/", response_model=Facture, status_code=status.HTTP_201_CREATED, dependencies=[Depends(is_agent)])
-async def create_facture(facture: FactureCreate):
-    db = DatabaseManager(DATABASE_URL)
-    new_id = db.create("Facture", data=facture.model_dump())
-    if new_id is None:
-        raise HTTPException(status_code=400, detail="Invalid data or creation failed")
-    
-    created_facture = db.select("Facture", filters={"Id": new_id})
-    if not created_facture:
-        raise HTTPException(status_code=500, detail="Failed to retrieve created facture")
-    return created_facture[0]
-
-@app.put("/factures/{facture_id}", response_model=Facture, dependencies=[Depends(is_agent)])
-async def update_facture(facture_id: int, updated_data: FactureCreate):
-    db = DatabaseManager(DATABASE_URL)
-    rows_affected = db.update("Facture", data=updated_data.model_dump(exclude_unset=True), filters={"Id": facture_id})
-    if rows_affected == 0:
-        raise HTTPException(status_code=404, detail="Facture not found")
-    
-    updated_facture = db.select("Facture", filters={"Id": facture_id})
-    if not updated_facture:
-        raise HTTPException(status_code=500, detail="Failed to retrieve updated facture")
-    return updated_facture[0]
-
-@app.delete("/factures/{facture_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(is_agent)])
-async def delete_facture(facture_id: int):
-    db = DatabaseManager(DATABASE_URL)
-    rows_affected = db.delete("Facture", filters={"Id": facture_id})
-    if rows_affected == 0:
-        raise HTTPException(status_code=404, detail="Facture not found")
-    return
 
 # -----------------------------------------------------------
 # Messagerie Endpoints

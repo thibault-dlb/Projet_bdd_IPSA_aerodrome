@@ -270,22 +270,6 @@ def check_user_owns_creneau(db: DatabaseManager, pilote_id: int, creneau_id: int
     return creneau[0].get("pilote_id") == pilote_id
 
 
-def check_user_access_to_facture(db: DatabaseManager, pilote_id: int, facture_id: int) -> bool:
-    """
-    Check if a pilot has access to a specific facture (via their creneaux).
-    
-    Args:
-        db: Database manager instance
-        pilote_id: ID of the pilot
-        facture_id: ID of the facture
-        
-    Returns:
-        True if the pilot has access to the facture, False otherwise
-    """
-    creneaux = db.select("Creneaux", filters={"facture_id": facture_id, "pilote_id": pilote_id})
-    return len(creneaux) > 0
-
-
 def check_user_access_to_message(db: DatabaseManager, user_id: int, message_id: int) -> bool:
     """
     Check if a user has access to a specific message (as sender or recipient).
